@@ -26,6 +26,7 @@
 
     devShells.${system}.default = pkgs.mkShell {
       buildInputs = [
+        pkgs.tmux
         pkgs.bun
         pkgs.redis
         run-dev-redis
