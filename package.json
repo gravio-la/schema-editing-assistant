@@ -1,0 +1,11 @@
+{
+  "name": "formsw-agent",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev:server": "bun --filter vercel-schema-agent-server dev",
+    "dev:storybook": "bun --filter storybook dev",
+    "build": "bun --filter '*' build",
+    "typecheck": "bun --filter '*' typecheck"
+  }
+}

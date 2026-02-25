@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "paths": {
+      "@formsw/agent-chat-components": ["../../packages/agent-chat-components/src/index.ts"],
+      "@formsw/agent-chat-flow": ["../../packages/agent-chat-flow/src/index.ts"]
+    }
+  },
+  "include": [".storybook/**/*", "src/**/*", "../../packages/*/src/**/*"]
+}
