@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { StreamTestDemo } from '@formsw/agent-chat-flow'
+import { StreamTestDemo } from '@graviola/agent-chat-flow'
 
 const meta: Meta<typeof StreamTestDemo> = {
   title: 'StreamTest/Live (real server)',

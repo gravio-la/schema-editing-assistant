@@ -1,6 +1,6 @@
 import type { Meta, StoryObj, Decorator } from '@storybook/react-vite'
 import type { ComponentType } from 'react'
-import { StreamTestDemo } from '@formsw/agent-chat-flow'
+import { StreamTestDemo } from '@graviola/agent-chat-flow'
 
 // ── Mock fetch — emulates the Vercel AI SDK v4 data stream protocol ───────────
 //
