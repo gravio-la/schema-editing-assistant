@@ -1,4 +1,4 @@
-import type { Preview } from '@storybook/react'
+import type { Preview } from '@storybook/react-vite'
 import { ThemeProvider, createTheme } from '@mui/material/styles'
 import { createElement } from 'react'
 
