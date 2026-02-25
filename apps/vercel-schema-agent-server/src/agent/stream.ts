@@ -11,8 +11,10 @@ import type { Session } from '../session/types'
 
 const llmJson = LlmJson.getInstance({ attemptCorrection: true })
 
+type SelectedElement = any
+
 /** Run the agent for a single user turn and return a streaming Response. */
-export function runAgentStream(session: Session, userMessage: string): Response {
+export function runAgentStream(session: Session, userMessage: string, selectedElement?: SelectedElement): Response {
   let currentSession: Session = {
     ...session,
     messages: [
@@ -127,6 +129,7 @@ export function runAgentStream(session: Session, userMessage: string): Response 
           currentSession.schemaState.jsonSchema,
           currentSession.schemaState.uiSchema,
           currentSession.language,
+          selectedElement,
         ),
         messages: currentSession.messages
           .filter((m) => m.role === 'user' || m.role === 'assistant')

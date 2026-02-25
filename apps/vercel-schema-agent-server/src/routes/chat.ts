@@ -12,6 +12,7 @@ chat.post('/', async (c) => {
     sessionId: string
     message?: string
     messages?: Array<{ role: string; content: string }>
+    selectedElement?: { type: string; scope?: string; label?: string }
   }>()
 
   // Extract the latest user message — prefer explicit `message` field, fall back
@@ -26,9 +27,9 @@ chat.post('/', async (c) => {
   const session = await getSession(body.sessionId)
   if (!session) return c.json({ error: 'Session not found' }, 404)
 
-  logger.info('chat request', { sessionId: body.sessionId, messageLength: userMessage.length })
+  logger.info('chat request', { sessionId: body.sessionId, messageLength: userMessage.length, hasSelection: body.selectedElement !== undefined })
   try {
-    return await runAgentStream(session, userMessage)
+    return await runAgentStream(session, userMessage, body.selectedElement)
   } catch (err) {
     logger.error('runAgentStream threw', { err: String(err), stack: err instanceof Error ? err.stack : undefined })
     return c.json({ error: String(err) }, 500)

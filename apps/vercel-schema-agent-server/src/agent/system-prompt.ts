@@ -1,10 +1,13 @@
 import { jsonFormsRelatedKnowledge } from './json-forms-related-knowledge'
 
+type SelectedElement = any
+
 /** Build the system prompt string for streamText. */
 export function buildSystemPrompt(
   schema: Record<string, unknown>,
   uiSchema: Record<string, unknown>,
   language: 'de' | 'en',
+  selectedElement?: SelectedElement,
 ): string {
   const lang = language === 'de' ? 'German' : 'English'
 
@@ -79,5 +82,51 @@ ${jsonFormsRelatedKnowledge}
 ${JSON.stringify({ jsonSchema: schema, uiSchema }, null, 2)}
 </current_schema>`
 
-  return `${roleAndRules}\n\n${jsonFormsRef}\n\n${schemaBlock}`
+  const selectedElementBlock = selectedElement !== undefined
+    ? buildSelectedElementBlock(selectedElement)
+    : ''
+
+  return [roleAndRules, jsonFormsRef, selectedElementBlock, schemaBlock]
+    .filter(Boolean)
+    .join('\n\n')
+}
+
+function buildSelectedElementBlock(el: SelectedElement): string {
+  const isControl = el.type === 'Control'
+
+  // Derive a readable description of the element for the LLM.
+  const descriptionLines: string[] = [`Type: ${el.type}`]
+  if (el.scope !== undefined) descriptionLines.push(`Scope: ${el.scope}`)
+  if (el.label !== undefined) descriptionLines.push(`Label: ${el.label}`)
+
+  // For Control elements, extract the property name from the JSON pointer so
+  // the LLM can directly map it to a dot-notation tool path.
+  const propertyHint = isControl && el.scope !== undefined
+    ? `\nProperty path (for tool calls): ${scopeToPropertyPath(el.scope)}`
+    : ''
+
+  // For layout elements, explain what "target" means spatially.
+  const layoutHint = !isControl
+    ? `\nWhen the user says "here", "into this", "add to this group", or similar: place new elements inside this layout's children scope.`
+    : `\nWhen the user says "above this", "below this", or "next to this": interpret it relative to this field's position within its parent layout.`
+
+  return `<selected_element>
+[EDITOR CONTEXT — injected by the form editor, not written by the user]
+
+The user currently has the following UI schema element selected or focused in the form editor:
+
+${descriptionLines.join('\n')}${propertyHint}${layoutHint}
+
+Behavioural rule: When the user's message contains implicit or relative references — "this", "here", "the selected field/group", "this input", "that section", "above this", "below this", "into this", "move it here", "next to this", or any phrasing that does not name a specific field — treat the element described above as the implicit target. Only ignore the selection if the user's message unambiguously names a different element.
+</selected_element>`
+}
+
+/** Convert a JSON pointer like '#/properties/address/properties/street'
+ *  to dot-notation 'address.street' used in tool path arguments. */
+function scopeToPropertyPath(scope: string): string {
+  return scope
+    .replace(/^#\//, '')
+    .split('/')
+    .filter((seg) => seg !== 'properties')
+    .join('.')
 }
