@@ -6,10 +6,10 @@ import ListItem from '@mui/material/ListItem'
 import Paper from '@mui/material/Paper'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
-import type { ChatMessage } from '../types.js'
+import type { ChatMessageData } from '../types'
 
 export interface StreamTestDisplayProps {
-  messages: ChatMessage[]
+  messages: ChatMessageData[]
   input: string
   isLoading: boolean
   error?: string | undefined

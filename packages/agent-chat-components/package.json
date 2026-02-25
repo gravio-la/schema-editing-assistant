@@ -1,5 +1,5 @@
 {
-  "name": "@formsw/agent-chat-components",
+  "name": "@graviola/agent-chat-components",
   "version": "0.0.1",
   "private": false,
   "main": "dist/index.js",
