@@ -2,10 +2,10 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "src",
     "paths": {
       "@formsw/agent-chat-components": ["../../packages/agent-chat-components/src/index.ts"]
     }
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*"],
+  "exclude": ["src/**/*.stories.tsx", "src/**/*.stories.ts"]
 }

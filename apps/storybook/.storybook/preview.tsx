@@ -1,12 +1,15 @@
 import type { Preview } from '@storybook/react-vite'
 import { ThemeProvider, createTheme } from '@mui/material/styles'
-import { createElement } from 'react'
 
 const theme = createTheme()
 
 const preview: Preview = {
   decorators: [
-    (Story) => createElement(ThemeProvider, { theme }, createElement(Story)),
+    (Story) => (
+      <ThemeProvider theme={theme}>
+        <Story />
+      </ThemeProvider>
+    ),
   ],
   parameters: {
     controls: {

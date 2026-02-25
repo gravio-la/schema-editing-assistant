@@ -5,3 +5,5 @@ dist/
 *.local
 .turbo/
 storybook-static/
+
+*storybook.log
