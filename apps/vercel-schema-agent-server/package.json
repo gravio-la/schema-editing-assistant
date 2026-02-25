@@ -2,8 +2,8 @@
   "name": "vercel-schema-agent-server",
   "private": true,
   "scripts": {
-    "dev": "bun run --hot src/index.ts",
-    "build": "bun build src/index.ts --outdir dist --target bun",
+    "dev": "bun --env-file=../../.env run --hot src/index.ts",
+    "build": "bun --env-file=../../.env build src/index.ts --outdir dist --target bun",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
