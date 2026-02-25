@@ -1,5 +1,5 @@
 {
-  "name": "formsw-agent",
+  "name": "graviola-agent-tools",
   "private": true,
   "workspaces": ["apps/*", "packages/*"],
   "scripts": {
