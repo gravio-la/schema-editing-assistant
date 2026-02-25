@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { StreamTestDisplay } from '@formsw/agent-chat-components'
+import { StreamTestDisplay } from '@graviola/agent-chat-components'
 
 const meta: Meta<typeof StreamTestDisplay> = {
   title: 'StreamTest/Display (static)',

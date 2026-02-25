@@ -1,1 +1,6 @@
-export * from './demo/StreamTestDemo'
+export { StreamTestDemo } from './demo/StreamTestDemo'
+export { useSchemaAgent } from './hooks/useSchemaAgent'
+export { useSchemaSync } from './hooks/useSchemaSync'
+export { AgentChatProvider } from './components/AgentChatProvider'
+export { SchemaEditorDemo } from './demo/SchemaEditorDemo'
+export type { SchemaState } from './hooks/useSchemaSync'

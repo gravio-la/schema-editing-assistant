@@ -1,5 +1,5 @@
 import { useChat } from 'ai/react'
-import { StreamTestDisplay } from '@formsw/agent-chat-components'
+import { StreamTestDisplay } from '@graviola/agent-chat-components'
 import type { ChangeEvent } from 'react'
 
 export interface StreamTestDemoProps {
@@ -24,7 +24,7 @@ export function StreamTestDemo({
       input={input}
       isLoading={isLoading}
       error={error?.message}
-      onInputChange={(v) =>
+      onInputChange={(v: string) =>
         handleInputChange({ target: { value: v } } as ChangeEvent<HTMLInputElement>)
       }
       onSubmit={() => handleSubmit()}

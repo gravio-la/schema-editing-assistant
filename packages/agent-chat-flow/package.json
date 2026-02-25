@@ -1,5 +1,5 @@
 {
-  "name": "@formsw/agent-chat-flow",
+  "name": "@graviola/agent-chat-flow",
   "version": "0.0.1",
   "private": false,
   "main": "dist/index.js",
@@ -18,7 +18,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@formsw/agent-chat-components": "workspace:*",
+    "@graviola/agent-chat-components": "workspace:*",
     "ai": "^4.0.0",
     "lodash-es": "^4.0.0"
   },

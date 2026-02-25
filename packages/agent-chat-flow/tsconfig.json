@@ -3,7 +3,7 @@
   "compilerOptions": {
     "outDir": "dist",
     "paths": {
-      "@formsw/agent-chat-components": ["../../packages/agent-chat-components/src/index.ts"]
+      "@graviola/agent-chat-components": ["../../packages/agent-chat-components/src/index.ts"]
     }
   },
   "include": ["src/**/*"],

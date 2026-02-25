@@ -6,5 +6,5 @@ export default defineConfig({
   dts: true,
   sourcemap: true,
   clean: true,
-  external: ['react', 'react-dom', '@formsw/agent-chat-components'],
+  external: ['react', 'react-dom', '@graviola/agent-chat-components'],
 })
