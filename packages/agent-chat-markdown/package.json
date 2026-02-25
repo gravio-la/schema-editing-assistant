@@ -1,7 +1,8 @@
 {
   "name": "@graviola/agent-chat-markdown",
-  "version": "0.0.1",
+  "version": "0.0.4",
   "private": false,
+  "files": ["dist", "src", "README.md"],
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -14,6 +15,7 @@
   },
   "scripts": {
     "build": "tsup",
+    "release": "bun publish --access public",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit"
   },
