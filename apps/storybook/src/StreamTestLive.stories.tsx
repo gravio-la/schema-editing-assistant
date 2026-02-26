@@ -8,7 +8,7 @@ const meta: Meta<typeof StreamTestDemo> = {
     docs: {
       description: {
         component:
-          'Connects to the real Hono server. Requires `bun run dev:server` to be running on port 3001.',
+          'Connects to the real Hono server. Requires `bun run dev:server` to be running on port 3001. Or provide the server URL as an argument.',
       },
     },
   },

@@ -16,6 +16,13 @@ const config: StorybookConfig = {
   ],
   addons: [getAbsolutePath('@storybook/addon-docs')],
   framework: getAbsolutePath('@storybook/react-vite') as '@storybook/react-vite',
+  viteFinal(config) {
+    const base = process.env.STORYBOOK_BASE_PATH
+    if (base) {
+      config.base = base.endsWith('/') ? base : `${base}/`
+    }
+    return config
+  },
 }
 
 export default config
