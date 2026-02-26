@@ -1,6 +1,6 @@
 {
   "name": "@graviola/agent-chat-flow",
-  "version": "0.0.4",
+  "version": "0.0.8",
   "private": false,
   "files": ["dist", "src", "README.md"],
   "main": "dist/index.js",

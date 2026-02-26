@@ -18,6 +18,7 @@ interface UseSchemaAgentReturn {
   messages: ChatMessageData[]
   sendMessage: (text: string) => void
   isStreaming: boolean
+  streamingMessageId: string | undefined
   pendingClarification: ClarificationPayload | null
   answerClarification: (answer: string) => void
   agentStatus: 'idle' | 'thinking' | 'streaming' | 'error'
@@ -99,10 +100,16 @@ export function useSchemaAgent({ serverUrl, sessionId, selectedElement, onError 
 
   const agentStatus = error ? 'error' : isLoading ? 'thinking' : 'idle'
 
+  // The last message is the partial assistant message while streaming.
+  const lastMessage = messages[messages.length - 1]
+  const streamingMessageId =
+    isLoading && lastMessage?.role === 'assistant' ? lastMessage.id : undefined
+
   return {
     messages: chatMessages,
     sendMessage,
     isStreaming: isLoading,
+    streamingMessageId,
     pendingClarification: effectiveClarification,
     answerClarification,
     agentStatus: agentStatus as 'idle' | 'thinking' | 'streaming' | 'error',
