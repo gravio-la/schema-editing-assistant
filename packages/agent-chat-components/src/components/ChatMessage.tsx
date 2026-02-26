@@ -30,7 +30,9 @@ export function ChatMessage({ message, isStreaming = false, sx }: ChatMessagePro
           px: 1.5,
           py: 1,
           maxWidth: '80%',
-          bgcolor: isUser ? 'primary.main' : 'grey.100',
+          bgcolor: isUser
+            ? 'primary.main'
+            : (theme) => (theme.palette.mode === 'dark' ? 'grey.800' : 'grey.100'),
           color: isUser ? 'primary.contrastText' : 'text.primary',
           borderRadius: isUser ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
           '& .streaming-content::after': isStreaming
