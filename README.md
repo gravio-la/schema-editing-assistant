@@ -1,4 +1,4 @@
-# FormsWizard AI Agent
+# JSON-Schema and Form UI Schema AI Agent
 
 > **Experimental** — This project is under active development and not yet production-ready. APIs, data formats, and architecture may change without notice.
 
@@ -108,15 +108,6 @@ curl http://localhost:3001/api/schema/$SESSION
 | `bun run build` | Build all packages and apps |
 | `bun run typecheck` | Run `tsc --noEmit` across the whole monorepo |
 
-## Status
-
-| Area | Status |
-|---|---|
-| Monorepo scaffold + deps | Done |
-| API server implementation | In progress |
-| Chat UI components | Planned |
-| useChat / schema sync hooks | Planned |
-| Storybook stories | Planned |
 
 ## License
 
