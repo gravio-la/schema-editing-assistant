@@ -1,6 +1,6 @@
 {
   "name": "@graviola/agent-chat-components",
-  "version": "0.0.4",
+  "version": "0.0.8",
   "private": false,
   "files": ["dist", "src", "README.md"],
   "main": "dist/index.js",
@@ -19,22 +19,30 @@
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit"
   },
-  "dependencies": {
+  "dependencies": {},
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
     "@mui/material": "^7.0.0",
     "@mui/icons-material": "^7.0.0",
     "@emotion/react": "^11.0.0",
     "@emotion/styled": "^11.0.0"
   },
-  "devDependencies": {
-    "tsup": "^8.0.0",
-    "typescript": "^5.0.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0"
-  },
   "peerDependencies": {
     "react": ">=18",
-    "react-dom": ">=18"
+    "react-dom": ">=18",
+    "@mui/material": ">=5.0.0",
+    "@mui/icons-material": ">=5.0.0",
+    "@emotion/react": ">=11.0.0",
+    "@emotion/styled": ">=11.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@mui/icons-material": {
+      "optional": false
+    }
   }
 }

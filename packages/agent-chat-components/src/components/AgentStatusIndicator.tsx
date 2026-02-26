@@ -12,9 +12,9 @@ const DOT_SIZE = 10
 export function AgentStatusIndicator({ status, sx }: AgentStatusIndicatorProps) {
   const colorMap: Record<AgentStatus['state'], string> = {
     idle: 'grey.400',
-    thinking: 'primary.main',
-    streaming: 'success.main',
-    error: 'error.main',
+    thinking: 'common.white',
+    streaming: 'success.light',
+    error: 'error.light',
   }
 
   const animationMap: Record<AgentStatus['state'], string | undefined> = {

@@ -23,6 +23,7 @@ export interface AgentFABProps {
   onAnswerClarification?: (answer: string) => void
   agentStatus?: AgentStatus['state']
   defaultPosition?: { x: number; y: number }
+  defaultOpen?: boolean
   title?: string
   sx?: SxProps<Theme>
 }
@@ -48,10 +49,11 @@ export function AgentFAB({
   onAnswerClarification,
   agentStatus = 'idle',
   defaultPosition,
+  defaultOpen = false,
   title = 'AI Assistent',
   sx,
 }: AgentFABProps) {
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(defaultOpen)
 
   const { position, isDragging, handlePointerDown } = useDraggable(
     getDefaultPosition(defaultPosition),
@@ -121,6 +123,7 @@ export function AgentFAB({
       {/* Message list */}
       <ChatMessageList
         messages={messages}
+        isStreaming={isStreaming}
         {...(streamingMessageId !== undefined ? { streamingMessageId } : {})}
         sx={{ flexGrow: 1, minHeight: 0 }}
       />

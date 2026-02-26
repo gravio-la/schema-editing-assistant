@@ -7,15 +7,45 @@ import type { ChatMessageData } from '../types'
 export interface ChatMessageListProps {
   messages: ChatMessageData[]
   streamingMessageId?: string
+  isStreaming?: boolean
   sx?: SxProps<Theme>
 }
 
-export function ChatMessageList({ messages, streamingMessageId, sx }: ChatMessageListProps) {
+function ThinkingIndicator() {
+  return (
+    <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center', px: 1.5, py: 1 }}>
+      {[0, 1, 2].map((i) => (
+        <Box
+          key={i}
+          sx={{
+            '@keyframes thinkingBounce': {
+              '0%, 80%, 100%': { opacity: 0.3, transform: 'translateY(0)' },
+              '40%': { opacity: 1, transform: 'translateY(-4px)' },
+            },
+            width: 6,
+            height: 6,
+            borderRadius: '50%',
+            bgcolor: 'text.secondary',
+            animation: `thinkingBounce 1.2s ease-in-out ${i * 0.2}s infinite`,
+          }}
+        />
+      ))}
+    </Box>
+  )
+}
+
+export function ChatMessageList({ messages, streamingMessageId, isStreaming = false, sx }: ChatMessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+  }, [messages, isStreaming])
+
+  // Show the bouncing dots while the agent is processing but hasn't emitted
+  // any assistant text yet (tool-calling phase). Once text starts streaming in,
+  // the partial assistant message appears instead.
+  const lastMessage = messages[messages.length - 1]
+  const showThinkingIndicator = isStreaming && lastMessage?.role !== 'assistant'
 
   return (
     <Box
@@ -36,6 +66,7 @@ export function ChatMessageList({ messages, streamingMessageId, sx }: ChatMessag
           isStreaming={message.id === streamingMessageId}
         />
       ))}
+      {showThinkingIndicator && <ThinkingIndicator />}
       <div ref={bottomRef} />
     </Box>
   )
