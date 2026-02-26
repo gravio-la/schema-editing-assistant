@@ -33,7 +33,7 @@ jobs:
         run: bun install
 
       - name: Build Storybook
-        run: bun --filter storybook run build
+        run: bun --filter storybook build
         env:
           # Sub-path for GitHub Pages: https://<org>.github.io/<repo>/
           STORYBOOK_BASE_PATH: /${{ github.event.repository.name }}/
