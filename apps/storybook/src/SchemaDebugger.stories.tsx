@@ -17,8 +17,13 @@ import {
 } from '@graviola/agent-chat-components'
 import type { ChatMessageData, ClarificationPayload } from '@graviola/agent-chat-components'
 
-import { useSchemaAgent, useSchemaSync } from '@graviola/agent-chat-flow'
-import type { SchemaState } from '@graviola/agent-chat-flow'
+import { useSchemaAgent } from '@graviola/agent-chat-flow'
+
+interface SchemaState {
+  jsonSchema: Record<string, unknown>
+  uiSchema: Record<string, unknown>
+  version: number
+}
 
 // ── Inline schema code block ──────────────────────────────────────────────────
 
@@ -88,13 +93,21 @@ function SchemaDebugger({ serverUrl, sessionId }: SchemaDebuggerProps) {
     wasStreamingRef.current = isStreaming
   }, [isStreaming])
 
-  useSchemaSync({
-    serverUrl,
-    sessionId,
-    schemaVersion: schemaState.version,
-    onSchemaUpdate: setSchemaState,
-    refreshToken: schemaRefreshToken,
-  })
+  // Fetch schema from server
+  useEffect(() => {
+    const fetchSchema = async () => {
+      try {
+        const res = await fetch(`${serverUrl}/api/schema/${sessionId}`)
+        if (res.ok) {
+          const data = (await res.json()) as SchemaState
+          setSchemaState(data)
+        }
+      } catch (err) {
+        console.error('Failed to fetch schema:', err)
+      }
+    }
+    void fetchSchema()
+  }, [serverUrl, sessionId, schemaRefreshToken])
 
   const streamingMessageId =
     isStreaming && messages.length > 0 ? messages[messages.length - 1]?.id : undefined
