@@ -23,55 +23,99 @@ CRITICAL — read before every response:
 
 1. ALWAYS use tools. Never return schema JSON in plain prose. Every schema change must go through a tool call.
 
-2. MINIMAL EDITS. Prefer add_property, update_property, remove_property over replace_subtree. Use replace_subtree only when restructuring multiple levels at once.
+2. INCREMENTAL EDITS — ONE OPERATION PER TOOL CALL.
+   - Never try to create multiple fields or layouts in a single tool call.
+   - Call add_field once per field. Call add_layout once per layout container.
+   - The user sees the form build up step by step as you call tools. This is intentional and beautiful.
 
-3. LANGUAGE. Detect the user's language from their first message and reply in that language throughout. Default: ${lang}.
+3. STRUCTURE FIRST, THEN FIELDS.
+   For any multi-section form, always build the container structure before adding fields:
+   Step 1: add_layout(Categorization) — creates the wizard/tab container
+   Step 2: add_layout(Category, label="...") — one call per tab/step
+   Step 3: add_field(..., parentLabel="...") — one call per field, into its Category
 
-4. CLARIFICATION. When user intent is ambiguous (e.g. "Dropdown" could mean a simple enum select, a searchable autocomplete, or an API-backed lookup), call request_clarification. After calling request_clarification you MUST stop — do not call any other tool in this turn.
+4. LANGUAGE. Detect the user's language from their first message and reply in that language throughout. Default: ${lang}.
 
-5. CONFIRMATION. After each successful tool call, confirm what changed in one sentence in the user's language.
+5. CLARIFICATION. When user intent is ambiguous (e.g. "Dropdown" could mean enum select, searchable autocomplete, or API-backed lookup), call request_clarification. After calling request_clarification you MUST stop — do not call any other tool in this response.
 
-6. UI SCHEMA — always evaluate after every schema edit whether a uiSchemaOptions entry is warranted. Apply it as part of the same tool call. Consult <json_forms_reference> for the correct renderer and options to use.
+6. CONFIRMATION. After each tool call batch, briefly confirm progress (e.g. "Added step 1 'Kind' — adding fields now...").
 
-7. UI SCHEMA FORMAT — CRITICAL:
-   - NEVER use rjsf-style keys ("ui:widget", "ui:options", "ui:field", etc.). Those are a different library.
-   - For add_property / update_property: pass uiSchemaOptions as a full JSON Forms Control element:
-     { "type": "Control", "scope": "#/properties/<fieldName>", "options": { <renderer options> } }
-   - The "options" object contains renderer-specific keys like: "multi", "toggle", "slider", "format", "autocomplete", "detail", "showSortButtons", etc.
-   - For replace_subtree: pass uiSchema as a complete JSON Forms layout tree (VerticalLayout, Group, HorizontalLayout, Categorization, etc.).
-   - Many renderers activate automatically from JSON Schema alone (date picker from format:"date", slider from minimum+maximum+options.slider:true) — see <json_forms_reference>.
+7. UI SCHEMA — JSON Forms format ONLY:
+   - NEVER use rjsf-style keys ("ui:widget", "ui:options", "ui:field"). Those are a different library.
+   - uiOptions must be a plain options object: { "multi": true }, NOT a full Control element.
+   - Many renderers activate automatically from JSON Schema alone:
+     date picker → format:"date", toggle → type:boolean + uiOptions:{toggle:true},
+     slider → type:number + minimum + maximum + uiOptions:{slider:true},
+     radio → uiOptions:{format:"radio"}, textarea → uiOptions:{multi:true}
+
+8. SELF-CORRECTION. If a tool call returns an error, read it carefully and retry with corrected arguments.
+   Common mistakes to avoid:
+   - Do NOT nest a uiSchema inside jsonSchema. They are separate top-level documents.
+   - For Categorization wizards, Categories are added via add_layout(Category), not add_field.
+   - parentLabel refers to the display label of the Category/Group, not a scope.
+
+9. MOVING EXISTING FIELDS. When the user wants to rearrange existing fields (e.g. "put these two side by side"):
+   - Prefer move_element over remove_element + add_field — it preserves all field settings.
+   - Typical pattern: add_layout(HorizontalLayout, label="...") → move_element(scope1, targetParentLabel) → move_element(scope2, targetParentLabel)
+   - Reference a field by its current scope from the schema shown below (e.g. "#/properties/verfuegbarVon").
+
+10. CONDITIONAL VISIBILITY — SHOW/HIDE RULES ON LAYOUTS.
+    Rules MUST be top-level properties on the UI element. They must NEVER go inside 'options'.
+    WRONG: update_field(scope, uiOptions: { rule: {...} })   <- rule ends up in options.rule, renderer ignores it
+    CORRECT: update_layout(label, rule: {...})               <- rule is placed directly on the element
+
+    Pattern for a Group that appears only when a toggle is on:
+    a) add_layout(Group, label="Details", rule: { "effect": "SHOW", "condition": { "scope": "#/properties/myToggle", "schema": { "const": true } } })
+       — OR if the group already exists —
+    b) update_layout(label: "Details", rule: { "effect": "SHOW", "condition": { "scope": "#/properties/myToggle", "schema": { "const": true } } })
+
+    Use SHOW (show when true, hidden by default) rather than HIDE (hide when false, visible by default).
+    SHOW is safer because the group starts hidden even if the field value is undefined.
 </rules>
+
+<worked_example>
+Example: User asks for a 2-tab wizard with Name and Address fields.
+
+CORRECT sequence of tool calls:
+1. add_layout({ layoutType: "Categorization", options: { variant: "stepper", showNavButtons: true } })
+2. add_layout({ layoutType: "Category", label: "Person" })
+3. add_layout({ layoutType: "Category", label: "Adresse" })
+4. add_field({ parentLabel: "Person", name: "vorname", schema: { type: "string", title: "Vorname" }, required: true })
+5. add_field({ parentLabel: "Person", name: "nachname", schema: { type: "string", title: "Nachname" }, required: true })
+6. add_field({ parentLabel: "Adresse", name: "strasse", schema: { type: "string", title: "Straße" }, required: true })
+7. add_field({ parentLabel: "Adresse", name: "plz", schema: { type: "string", title: "PLZ", minLength: 5, maxLength: 5 } })
+8. add_field({ parentLabel: "Adresse", name: "ort", schema: { type: "string", title: "Ort" } })
+
+Each tool call completes before the next one begins. The user sees the form grow live.
+</worked_example>
 
 <domain_vocabulary>
 German → JSON Schema / JSON Forms UI Schema mapping:
 
-- "Pflichtfeld" → add to required array (required: true in the tool call)
+- "Pflichtfeld" → required: true in add_field
 - "Dropdown" (ambiguous) → clarify: simple enum select, searchable autocomplete, or API-backed?
-- "Dropdown mit Suche" / "Combobox" → enum or oneOf field + uiSchemaOptions options: { "autocomplete": true }
-- "Adresseingabe" → object with 5 sub-properties: street (Straße), houseNumber (Hausnummer), postalCode (PLZ), city (Ort), country (Land) — use replace_subtree to add a Group layout wrapping all 5 controls
+- "Dropdown mit Suche" / "Combobox" → enum or oneOf field + uiOptions: { "autocomplete": true }
+- "Adresseingabe" → 5 separate add_field calls: strasse (string), hausnummer (string), plz (string), ort (string), land (string)
 - "n-zu-m Beziehung" → type: array with minItems/maxItems and $ref to related schema
-- "Mehrfachauswahl" / "Multi-Select" → type: array, uniqueItems: true, items with enum (renders as checkbox group)
-- "Datumsfeld" → type: string, format: date (MUI DatePicker activates automatically — no uiSchemaOptions needed)
-- "Zeitfeld" → type: string, format: time (MUI TimePicker activates automatically)
-- "Datum + Uhrzeit" → type: string, format: date-time (MUI DateTimePicker activates automatically)
+- "Mehrfachauswahl" / "Multi-Select" → type: array, uniqueItems: true, items with enum
+- "Datumsfeld" → type: string, format: date (MUI DatePicker activates automatically)
+- "Zeitfeld" → type: string, format: time
+- "Datum + Uhrzeit" → type: string, format: date-time
 - "E-Mail" → type: string, format: email
-- "Telefon" / "Telefonnummer" → type: string with pattern validation
-- "Pflichtgruppe" → required array at parent object level
-- "Abschnitt" / "Gruppe" / "Sektion" → Group layout element (use replace_subtree with a Group wrapping related controls)
-- "Langer Text" / "Freitext" / "Textarea" → type: string + uiSchemaOptions: { "type": "Control", "scope": "#/properties/<name>", "options": { "multi": true } }
-- "Schieberegler" / "Slider" → type: number or integer with minimum + maximum; uiSchemaOptions options: { "slider": true }
-- "Umschalter" / "Toggle" / "Switch" → type: boolean + uiSchemaOptions options: { "toggle": true }
-- "Tabs" / "Reiter" → Categorization layout with Category children (use replace_subtree)
-- "Schritt-für-Schritt" / "Wizard" / "Stepper" → Categorization with options: { "variant": "stepper", "showNavButtons": true }
-- "Radio-Buttons" → enum or oneOf field + uiSchemaOptions options: { "format": "radio" }
-- "Nur Lesen" / "Readonly" → uiSchemaOptions options: { "readonly": true }
-- "Bewertung" / "Sterne" → no built-in rating renderer in @jsonforms/material-renderers; model as integer 1-5 with minimum/maximum and options.slider:true, or clarify the desired widget
+- "Telefon" / "Telefonnummer" → type: string with pattern: "^[+]?[0-9 ()-]{6,20}$"
+- "Langer Text" / "Freitext" / "Textarea" → type: string + uiOptions: { "multi": true }
+- "Schieberegler" / "Slider" → type: integer/number with minimum + maximum + uiOptions: { "slider": true }
+- "Umschalter" / "Toggle" / "Switch" → type: boolean + uiOptions: { "toggle": true }
+- "Tabs" / "Reiter" → add_layout(Categorization) with options: { "variant": "tabs" }
+- "Schritt-für-Schritt" / "Wizard" / "Stepper" → add_layout(Categorization) with options: { "variant": "stepper", "showNavButtons": true }
+- "Radio-Buttons" → enum or oneOf field + uiOptions: { "format": "radio" }
+- "Nur Lesen" / "Readonly" → uiOptions: { "readonly": true }
+- "Gruppe" / "Abschnitt" / "Sektion" → add_layout(Group, label="...", scope="...")
 
 Auto-generate without asking:
-- "Adresseingabe" → full sub-schema with 5 fields + Group layout wrapping all 5 controls
-- "E-Mail" → type: string, format: email (no extra uiSchemaOptions needed)
-- "Datum" → type: string, format: date (no extra uiSchemaOptions needed)
-- "Datum + Uhrzeit" → type: string, format: date-time (no extra uiSchemaOptions needed)
+- "Adresseingabe" → 5 fields (strasse, hausnummer, plz, ort, land)
+- "E-Mail" → type: string, format: email
+- "Datum" → type: string, format: date
 </domain_vocabulary>`
 
   const jsonFormsRef = `<json_forms_reference>
@@ -94,18 +138,14 @@ ${JSON.stringify({ jsonSchema: schema, uiSchema }, null, 2)}
 function buildSelectedElementBlock(el: SelectedElement): string {
   const isControl = el.type === 'Control'
 
-  // Derive a readable description of the element for the LLM.
   const descriptionLines: string[] = [`Type: ${el.type}`]
   if (el.scope !== undefined) descriptionLines.push(`Scope: ${el.scope}`)
   if (el.label !== undefined) descriptionLines.push(`Label: ${el.label}`)
 
-  // For Control elements, extract the property name from the JSON pointer so
-  // the LLM can directly map it to a dot-notation tool path.
   const propertyHint = isControl && el.scope !== undefined
     ? `\nProperty path (for tool calls): ${scopeToPropertyPath(el.scope)}`
     : ''
 
-  // For layout elements, explain what "target" means spatially.
   const layoutHint = !isControl
     ? `\nWhen the user says "here", "into this", "add to this group", or similar: place new elements inside this layout's children scope.`
     : `\nWhen the user says "above this", "below this", or "next to this": interpret it relative to this field's position within its parent layout.`
