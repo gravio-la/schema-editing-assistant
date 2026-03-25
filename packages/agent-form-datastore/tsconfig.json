@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "paths": {
+      "@graviola/agent-form-flow": ["../../packages/agent-form-flow/src/index.ts"],
+      "@graviola/agent-chat-components": ["../../packages/agent-chat-components/src/index.ts"]
+    }
+  },
+  "include": ["src/**/*"]
+}
