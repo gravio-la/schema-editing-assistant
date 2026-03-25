@@ -4,6 +4,7 @@
   "workspaces": ["apps/*", "packages/*"],
   "scripts": {
     "dev:server": "bun --filter vercel-schema-agent-server dev",
+    "dev:form-server": "bun --filter graviola-ai-rest-server dev",
     "dev:storybook": "bun --filter storybook dev",
     "build": "bun --filter '*' build",
     "typecheck": "bun --filter '*' typecheck",
