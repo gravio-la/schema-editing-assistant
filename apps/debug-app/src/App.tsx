@@ -18,6 +18,18 @@ const SERVER_URL = import.meta.env.VITE_AGENT_SERVER_URL ?? 'http://localhost:30
 
 const theme = createTheme()
 
+/** `?lang=de` → German session (`POST /api/session`). Default `en`. Used by e2e / manual checks. */
+function sessionLanguageFromUrl(): 'de' | 'en' {
+  if (typeof window === 'undefined') return 'en'
+  return new URLSearchParams(window.location.search).get('lang') === 'de' ? 'de' : 'en'
+}
+
+function welcomeMessageForLanguage(lang: 'de' | 'en'): string {
+  return lang === 'de'
+    ? 'Hallo! Ich helfe dir beim Formular. Beschreib einfach, welche Felder du brauchst — ich richte das für dich ein.'
+    : 'Hi! I can help you build your form. Describe what fields you need and I’ll set them up.'
+}
+
 /** Optional custom renderers for POST /api/session (like forms-designer). */
 const DEBUG_CUSTOM_RENDERERS: AgentSessionCustomRenderer[] = [
   {
@@ -50,6 +62,7 @@ function AssistantOpenFab() {
 }
 
 export function App() {
+  const sessionLang = sessionLanguageFromUrl()
   const [schema, setSchema] = useState(createEmptySchemaState)
   const [toolLog, setToolLog] = useState<ToolLogEntry[]>([])
 
@@ -79,7 +92,8 @@ export function App() {
       <CssBaseline />
       <AiAssistantProvider
         serverUrl={SERVER_URL}
-        language="en"
+        language={sessionLang}
+        welcomeMessage={welcomeMessageForLanguage(sessionLang)}
         customRenderers={DEBUG_CUSTOM_RENDERERS}
         schema={{ jsonSchema: schema.jsonSchema, uiSchema: schema.uiSchema }}
         onExecuteTool={onExecuteTool}
