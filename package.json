@@ -8,6 +8,7 @@
     "dev:form-server": "bun --filter graviola-ai-rest-server dev",
     "dev:storybook": "bun --filter storybook dev",
     "dev:debug": "bun --filter debug-app dev",
+    "dev:packages": "bun --filter './packages/*' dev",
     "build": "bun --filter './packages/*' build",
     "typecheck": "bun --filter '*' typecheck",
     "release:all": "bun run --filter '@graviola/*' release"
