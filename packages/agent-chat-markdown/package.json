@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "@graviola/agent-chat-components": "workspace:*",
-    "mui-markdown": "^1.0.0",
+    "mui-markdown": "^2.1.1",
     "mermaid": "^11.0.0",
     "prism-react-renderer": "^2.0.0"
   },

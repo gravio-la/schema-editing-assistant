@@ -6,8 +6,12 @@
     "dev:server": "bun --filter vercel-schema-agent-server dev",
     "dev:form-server": "bun --filter graviola-ai-rest-server dev",
     "dev:storybook": "bun --filter storybook dev",
-    "build": "bun --filter '*' build",
+    "build": "bun --filter './packages/*' build",
     "typecheck": "bun --filter '*' typecheck",
     "release:all": "bun --filter '@graviola/*' run release"
+  },
+  "overrides": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0"
   }
 }
