@@ -7,3 +7,9 @@ redis/
 storybook-static/
 
 *storybook.log
+
+.env.ollama
+.env
+
+.claude
+.cursor
