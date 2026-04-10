@@ -1,4 +1,4 @@
-export const AGENT_CHAT_FLOW_VERSION = '0.1.2'
+export const AGENT_CHAT_FLOW_VERSION = '0.1.5'
 // eslint-disable-next-line no-console
 console.info(`[agent-chat-flow] ${AGENT_CHAT_FLOW_VERSION} loaded`)
 

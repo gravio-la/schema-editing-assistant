@@ -1,6 +1,6 @@
 {
   "name": "@graviola/agent-chat-flow",
-  "version": "0.1.2",
+  "version": "0.1.5",
   "private": false,
   "files": ["dist", "src", "README.md"],
   "main": "dist/index.js",
@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "@ai-sdk/react": "^3",
-    "@graviola/agent-chat-components": "workspace:*",
+    "@graviola/agent-chat-components": "^0.1.1",
     "ai": "^6",
     "lodash-es": "^4.0.0",
     "zod": "^3.25.76"

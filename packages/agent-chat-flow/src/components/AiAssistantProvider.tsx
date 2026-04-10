@@ -35,6 +35,10 @@ interface AiAssistantProviderProps {
    * Use a stable reference (module-level const or useMemo).
    */
   customRenderers?: AgentSessionCustomRenderer[]
+  /** Shown as the first assistant message after the session is created (before any user turn). */
+  welcomeMessage?: string
+  /** Icon on the floating button when the panel is closed (see `AgentFAB`). */
+  collapsedFabIcon?: ReactNode
   children: ReactNode
 }
 
@@ -45,6 +49,8 @@ export function AiAssistantProvider({
   selectedElement,
   language,
   customRenderers,
+  welcomeMessage,
+  collapsedFabIcon,
   children,
 }: AiAssistantProviderProps) {
   const [sessionId, setSessionId] = useState<string | undefined>(undefined)
@@ -75,7 +81,7 @@ export function AiAssistantProvider({
       setSessionId(data.sessionId)
       setIsOpen(true)
     } catch {
-      // leave isCreating=true so the button stays disabled rather than flashing
+      // Session creation failed; isCreating is cleared in finally.
     } finally {
       setIsCreating(false)
     }
@@ -107,7 +113,10 @@ export function AiAssistantProvider({
           {...(schema !== undefined ? { schema } : {})}
           {...(onExecuteTool !== undefined ? { onExecuteTool } : {})}
           {...(selectedElement !== undefined ? { selectedElement } : {})}
-          defaultOpen={isOpen}
+          panelOpen={isOpen}
+          onPanelOpenChange={setIsOpen}
+          {...(welcomeMessage !== undefined ? { welcomeMessage } : {})}
+          {...(collapsedFabIcon !== undefined ? { collapsedFabIcon } : {})}
         >
           <></>
         </AgentChatProvider>

@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import { useCallback, type ReactNode } from 'react'
 import Box from '@mui/material/Box'
 import Fab from '@mui/material/Fab'
 import IconButton from '@mui/material/IconButton'
 import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'
-import ChatBubbleOutlineOutlined from '@mui/icons-material/ChatBubbleOutlineOutlined'
+import { useControlled } from '@mui/material/utils'
 import CloseOutlined from '@mui/icons-material/CloseOutlined'
 import type { SxProps, Theme } from '@mui/material/styles'
 import { AgentStatusIndicator } from './AgentStatusIndicator'
@@ -13,6 +13,7 @@ import { ChatMessageList } from './ChatMessageList'
 import { ClarificationCard } from './ClarificationCard'
 import { useDraggable } from '../hooks/useDraggable'
 import type { AgentStatus, ChatMessageData, ClarificationPayload } from '../types'
+import { WandHutFabIcon } from './WandHutFabIcon'
 
 export interface AgentFABProps {
   messages: ChatMessageData[]
@@ -23,7 +24,13 @@ export interface AgentFABProps {
   onAnswerClarification?: (answer: string) => void
   agentStatus?: AgentStatus['state']
   defaultPosition?: { x: number; y: number }
+  /** Uncontrolled: initial panel visibility (ignored when `open` is set). */
   defaultOpen?: boolean
+  /** Controlled: panel open state (`open !== undefined`). Use with `onOpenChange` to update. */
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  /** Icon when the panel is collapsed; defaults to `WandHutFabIcon`. */
+  collapsedFabIcon?: ReactNode
   title?: string
   sx?: SxProps<Theme>
 }
@@ -50,10 +57,31 @@ export function AgentFAB({
   agentStatus = 'idle',
   defaultPosition,
   defaultOpen = false,
+  open: openProp,
+  onOpenChange,
+  collapsedFabIcon,
   title = 'AI Assistent',
   sx,
 }: AgentFABProps) {
-  const [isOpen, setIsOpen] = useState(defaultOpen)
+  const [open, setOpenInternal] = useControlled({
+    controlled: openProp,
+    default: defaultOpen,
+    name: 'AgentFAB',
+    state: 'open',
+  })
+
+  const setOpen = useCallback(
+    (next: boolean) => {
+      if (openProp !== undefined) {
+        onOpenChange?.(next)
+      } else {
+        setOpenInternal(next)
+      }
+    },
+    [openProp, onOpenChange, setOpenInternal],
+  )
+
+  const isOpen = Boolean(open)
 
   const { position, isDragging, handlePointerDown } = useDraggable(
     getDefaultPosition(defaultPosition),
@@ -64,10 +92,17 @@ export function AgentFAB({
       <Fab
         color="primary"
         aria-label="Open AI assistant"
-        onClick={() => setIsOpen(true)}
-        sx={{ position: 'fixed', right: 24, bottom: 24, zIndex: 1300, ...sx }}
+        onClick={() => setOpen(true)}
+        sx={{
+          position: 'fixed',
+          right: 24,
+          bottom: 24,
+          zIndex: 1300,
+          '& svg': { fontSize: 28 },
+          ...sx,
+        }}
       >
-        <ChatBubbleOutlineOutlined />
+        {collapsedFabIcon ?? <WandHutFabIcon />}
       </Fab>
     )
   }
@@ -112,7 +147,7 @@ export function AgentFAB({
         <IconButton
           size="small"
           aria-label="Close AI assistant"
-          onClick={() => setIsOpen(false)}
+          onClick={() => setOpen(false)}
           sx={{ color: 'primary.contrastText', p: 0.5 }}
           onPointerDown={(e) => e.stopPropagation()}
         >

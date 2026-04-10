@@ -6,6 +6,7 @@ export { ChatMessageList } from './components/ChatMessageList'
 export { ClarificationCard } from './components/ClarificationCard'
 export { ChatInput } from './components/ChatInput'
 export { AgentFAB } from './components/AgentFAB'
+export { WandHutFabIcon } from './components/WandHutFabIcon'
 export { AgentStatusIndicator } from './components/AgentStatusIndicator'
 export { useDraggable } from './hooks/useDraggable'
 

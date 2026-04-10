@@ -27,6 +27,8 @@ interface UseSchemaAgentOptions {
   }
   onExecuteTool?: (toolName: string, args: Record<string, unknown>) => ToolResult | Promise<ToolResult>
   onError?: (error: Error) => void
+  /** First assistant turn in the thread (UIMessage), shown before the user sends anything. */
+  welcomeMessage?: string
 }
 
 interface UseSchemaAgentReturn {
@@ -46,6 +48,7 @@ export function useSchemaAgent({
   schema,
   onExecuteTool,
   onError,
+  welcomeMessage,
 }: UseSchemaAgentOptions): UseSchemaAgentReturn {
   const onExecuteToolRef = useRef(onExecuteTool)
   useEffect(() => {
@@ -82,7 +85,21 @@ export function useSchemaAgent({
     [serverUrl, sessionId],
   )
 
+  const initialMessages = useMemo((): UIMessage[] => {
+    const text = welcomeMessage?.trim()
+    if (!text) return []
+    return [
+      {
+        id: `welcome-${sessionId}`,
+        role: 'assistant',
+        parts: [{ type: 'text', text, state: 'done' }],
+      },
+    ]
+  }, [sessionId, welcomeMessage])
+
   const { messages, sendMessage, addToolOutput, status, error } = useChat({
+    id: sessionId,
+    ...(initialMessages.length > 0 ? { messages: initialMessages } : {}),
     transport,
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
     async onToolCall({ toolCall }) {

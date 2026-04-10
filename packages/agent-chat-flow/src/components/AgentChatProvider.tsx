@@ -17,8 +17,15 @@ interface AgentChatProviderProps {
   onExecuteTool?: (toolName: string, args: Record<string, unknown>) => ToolResult | Promise<ToolResult>
   /** Currently selected/focused element in the form editor. */
   selectedElement?: SelectedUISchemaElement
-  /** Open the chat panel immediately on first render. */
+  /** Uncontrolled: open panel on first render (ignored when `panelOpen` is set). */
   defaultOpen?: boolean
+  /** Controlled panel visibility — use with `onPanelOpenChange` (e.g. from `AiAssistantProvider`). */
+  panelOpen?: boolean
+  onPanelOpenChange?: (open: boolean) => void
+  /** Seeded as the first assistant `UIMessage` when the chat is created (per session). */
+  welcomeMessage?: string
+  /** Passed to `AgentFAB`: icon when the chat panel is closed. */
+  collapsedFabIcon?: ReactNode
   children: ReactNode
 }
 
@@ -29,6 +36,10 @@ export function AgentChatProvider({
   onExecuteTool,
   selectedElement,
   defaultOpen,
+  panelOpen,
+  onPanelOpenChange,
+  welcomeMessage,
+  collapsedFabIcon,
   children,
 }: AgentChatProviderProps) {
   const {
@@ -45,12 +56,14 @@ export function AgentChatProvider({
     ...(schema !== undefined ? { schema } : {}),
     ...(onExecuteTool !== undefined ? { onExecuteTool } : {}),
     ...(selectedElement !== undefined ? { selectedElement } : {}),
+    ...(welcomeMessage !== undefined ? { welcomeMessage } : {}),
   })
 
   return (
     <>
       {children}
       <AgentFAB
+        key={sessionId}
         messages={messages}
         onSend={sendMessage}
         isStreaming={isStreaming}
@@ -58,7 +71,12 @@ export function AgentChatProvider({
         pendingClarification={pendingClarification}
         onAnswerClarification={answerClarification}
         agentStatus={agentStatus}
-        {...(defaultOpen !== undefined ? { defaultOpen } : {})}
+        {...(panelOpen !== undefined && onPanelOpenChange !== undefined
+          ? { open: panelOpen, onOpenChange: onPanelOpenChange }
+          : defaultOpen !== undefined
+            ? { defaultOpen }
+            : {})}
+        {...(collapsedFabIcon !== undefined ? { collapsedFabIcon } : {})}
       />
     </>
   )
