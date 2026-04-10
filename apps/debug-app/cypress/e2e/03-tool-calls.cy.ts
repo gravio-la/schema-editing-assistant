@@ -14,7 +14,8 @@ describe('tool calls (live LLM)', { retries: 2 }, () => {
     cy.sendMessage(
       'Add exactly one required string field named fullName for the user full name. Call add_field once with that name.',
     )
-    cy.waitForAgentIdle()
+    // Do not use waitForAgentIdle here: auto follow-up rounds can briefly return to idle between requests,
+    // so thinking→idle would settle too early. Outcome assertions below already wait for completion.
     cy.get('[data-testid="tool-log-body"]').contains('td', 'add_field', { timeout: 120000 })
     cy.get('[data-testid="json-schema-preview"]').should('contain', 'fullName')
   })

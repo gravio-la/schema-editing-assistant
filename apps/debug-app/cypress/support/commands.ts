@@ -11,6 +11,9 @@ Cypress.Commands.add('sendMessage', (text: string) => {
 })
 
 Cypress.Commands.add('waitForAgentIdle', () => {
+  // Idle is the default before any request; asserting only "idle" passes immediately and races the LLM.
+  // Require a busy phase first (submitted/streaming → AgentFAB maps both to "thinking").
+  cy.get('[aria-label="Agent status: thinking"]', { timeout: 180000 }).should('be.visible')
   cy.get('[aria-label="Agent status: idle"]', { timeout: 180000 }).should('be.visible')
 })
 
