@@ -11,11 +11,16 @@ function resolveGoogleApiKey(): string {
   )
 }
 
-const googleApiKey = resolveGoogleApiKey()
-const google = createGoogleGenerativeAI(googleApiKey !== '' ? { apiKey: googleApiKey } : {})
+/** Read from env on each call — avoids stale values when Bun --hot caches modules or .env updates after first load. */
+export function getProvider(): 'anthropic' | 'ollama' | 'gemini' {
+  const raw = (process.env['PROVIDER'] ?? 'anthropic').trim().toLowerCase()
+  if (raw === 'ollama') return 'ollama'
+  // common aliases / docs say "Google"
+  if (raw === 'gemini' || raw === 'google') return 'gemini'
+  return 'anthropic'
+}
 
 const config = {
-  PROVIDER: process.env['PROVIDER'] ?? 'anthropic',
   ANTHROPIC_API_KEY: process.env['ANTHROPIC_API_KEY'] ?? '',
   OLLAMA_BASE_URL: process.env['OLLAMA_BASE_URL'] ?? 'http://localhost:11434/v1',
   OLLAMA_LANGUAGE_MODEL: process.env['OLLAMA_LANGUAGE_MODEL'] ?? 'llama3.1',
@@ -23,14 +28,25 @@ const config = {
   REDIS_URL: process.env['REDIS_URL'] ?? 'redis://localhost:6379',
   PORT: Number(process.env['PORT'] ?? 3001),
   LOG_LEVEL: (process.env['LOG_LEVEL'] ?? 'debug') as string,
+  get PROVIDER() {
+    return getProvider()
+  },
 } as const
 
 export function getModel() {
-  if (config.PROVIDER === 'ollama') {
-    return createOpenAI({ baseURL: config.OLLAMA_BASE_URL, apiKey: 'ollama' })(config.OLLAMA_LANGUAGE_MODEL)
+  const provider = getProvider()
+  if (provider === 'ollama') {
+    const baseURL =
+      process.env['OLLAMA_BASE_URL']?.trim() || 'http://localhost:11434/v1'
+    const name = process.env['OLLAMA_LANGUAGE_MODEL']?.trim() || 'llama3.1'
+    return createOpenAI({ baseURL, apiKey: 'ollama' })(name)
   }
-  if (config.PROVIDER === 'gemini') {
-    return google(config.GEMINI_LANGUAGE_MODEL)
+  if (provider === 'gemini') {
+    const key = resolveGoogleApiKey()
+    const gemini = createGoogleGenerativeAI(key !== '' ? { apiKey: key } : {})
+    const modelId =
+      process.env['GEMINI_LANGUAGE_MODEL']?.trim() || 'gemini-2.5-flash'
+    return gemini(modelId)
   }
   return anthropic('claude-sonnet-4-6')
 }

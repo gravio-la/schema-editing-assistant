@@ -5,7 +5,7 @@ import chat from './routes/chat'
 import schema from './routes/schema'
 import session from './routes/session'
 import logger from './logger'
-import config from './config'
+import config, { getProvider } from './config'
 
 const app = new Hono()
 
@@ -17,5 +17,7 @@ app.route('/api/schema', schema)
 app.route('/api/session', session)
 
 serve({ fetch: app.fetch, port: config.PORT }, () => {
-  logger.info(`server listening on http://localhost:${config.PORT}`)
+  logger.info(
+    `server listening on http://localhost:${config.PORT} (PROVIDER=${getProvider()})`,
+  )
 })
