@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { AiAssistantContext } from '../context/AiAssistantContext'
 import { AgentChatProvider } from './AgentChatProvider'
 import type { ToolResult } from '../hooks/useSchemaAgent'
+import type { AgentSessionCustomRenderer } from '../types/agent-session'
 
 interface SchemaSnapshot {
   jsonSchema: Record<string, unknown>
@@ -27,6 +28,13 @@ interface AiAssistantProviderProps {
   onExecuteTool?: (toolName: string, args: Record<string, unknown>) => ToolResult | Promise<ToolResult>
   /** Currently selected element in the form editor. Forwarded to the agent. */
   selectedElement?: unknown
+  /** Stored on the server session; affects system prompt language. Default `en`. */
+  language?: 'de' | 'en'
+  /**
+   * Deployment-specific JSON Forms renderers / widgets (sent once at session creation).
+   * Use a stable reference (module-level const or useMemo).
+   */
+  customRenderers?: AgentSessionCustomRenderer[]
   children: ReactNode
 }
 
@@ -35,6 +43,8 @@ export function AiAssistantProvider({
   schema,
   onExecuteTool,
   selectedElement,
+  language,
+  customRenderers,
   children,
 }: AiAssistantProviderProps) {
   const [sessionId, setSessionId] = useState<string | undefined>(undefined)
@@ -49,9 +59,18 @@ export function AiAssistantProvider({
     }
     setIsCreating(true)
     try {
-      const data = await fetch(`${serverUrl}/api/session`, {
+      const res = await fetch(`${serverUrl}/api/session`, {
         method: 'POST',
-      }).then((r) => r.json() as Promise<{ sessionId: string }>)
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          language: language ?? 'en',
+          ...(customRenderers !== undefined && customRenderers.length > 0
+            ? { customRenderers }
+            : {}),
+        }),
+      })
+      if (!res.ok) throw new Error(`POST /api/session ${res.status}`)
+      const data = (await res.json()) as { sessionId: string }
 
       setSessionId(data.sessionId)
       setIsOpen(true)
@@ -60,7 +79,7 @@ export function AiAssistantProvider({
     } finally {
       setIsCreating(false)
     }
-  }, [serverUrl, sessionId, isCreating])
+  }, [serverUrl, sessionId, isCreating, language, customRenderers])
 
   const closeChat = useCallback(() => {
     setIsOpen(false)

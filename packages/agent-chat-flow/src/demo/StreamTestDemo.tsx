@@ -3,12 +3,17 @@ import { DefaultChatTransport } from 'ai'
 import { useEffect, useMemo, useState } from 'react'
 import { StreamTestDisplay } from '@graviola/agent-chat-components'
 import { resolveChatApiUrl, resolveServerOrigin } from '../utils/resolve-chat-api-url'
+import type { AgentSessionCustomRenderer } from '../types/agent-session'
 
 export interface StreamTestDemoProps {
   /** Dev server origin (`http://localhost:3001`) or full chat URL (`…/api/chat`). */
   serverUrl?: string
   /** If set, skips POST /api/session and uses this id (must exist in Redis). */
   sessionId?: string
+  /** Passed to POST /api/session when creating a session. Default `en`. */
+  language?: 'de' | 'en'
+  /** Passed to POST /api/session when non-empty. */
+  customRenderers?: AgentSessionCustomRenderer[]
 }
 
 function StreamTestChat({
@@ -58,6 +63,8 @@ function StreamTestChat({
 export function StreamTestDemo({
   serverUrl = 'http://localhost:3001',
   sessionId: sessionIdProp,
+  language = 'en',
+  customRenderers,
 }: StreamTestDemoProps) {
   const [sessionId, setSessionId] = useState<string | null>(sessionIdProp ?? null)
   const [sessionError, setSessionError] = useState<string | null>(null)
@@ -74,7 +81,12 @@ export function StreamTestDemo({
         const res = await fetch(`${base}/api/session`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ language: 'en' }),
+          body: JSON.stringify({
+            language,
+            ...(customRenderers !== undefined && customRenderers.length > 0
+              ? { customRenderers }
+              : {}),
+          }),
         })
         if (!res.ok) throw new Error(`POST /api/session ${res.status}`)
         const data = (await res.json()) as { sessionId: string }
@@ -86,7 +98,7 @@ export function StreamTestDemo({
     return () => {
       cancelled = true
     }
-  }, [serverUrl, sessionIdProp])
+  }, [serverUrl, sessionIdProp, language, customRenderers])
 
   if (sessionError != null) {
     return (

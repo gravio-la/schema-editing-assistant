@@ -174,8 +174,12 @@ export function useSchemaAgent({
   const agentStatus = error ? 'error' : isBusy ? 'thinking' : 'idle'
 
   const lastMessage = messages[messages.length - 1]
+  // Only the typing cursor (▋) while bytes are arriving — not during `submitted`,
+  // which also covers waiting for the HTTP response to start and between
+  // auto tool-result follow-up requests. Otherwise the UI looks "stuck streaming"
+  // after the model finished (finish chunk) until the next round begins.
   const streamingMessageId =
-    isBusy && lastMessage?.role === 'assistant' ? lastMessage.id : undefined
+    status === 'streaming' && lastMessage?.role === 'assistant' ? lastMessage.id : undefined
 
   return {
     messages: chatMessages,
