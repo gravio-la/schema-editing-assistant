@@ -1,15 +1,24 @@
 import { Hono } from 'hono'
 import { getSession } from '../session/store'
 import { runFormFillingStream } from '../agent/stream'
+import { extractLastUserTextFromChatBody } from '../agent/last-user-text'
 import logger from '../logger'
 
 const chat = new Hono()
+
+chat.get('/', (c) =>
+  c.json({
+    ok: true,
+    method: 'POST',
+    body: 'useChat JSON with sessionId + messages (and schema/formData as used by form agent)',
+  }),
+)
 
 chat.post('/', async (c) => {
   const body = await c.req.json<{
     sessionId: string
     message?: string
-    messages?: Array<{ role: string; content: unknown }>
+    messages?: Array<{ role: string; content?: unknown; parts?: unknown }>
     schema?: {
       jsonSchema: Record<string, unknown>
       uiSchema?: Record<string, unknown>
@@ -19,18 +28,7 @@ chat.post('/', async (c) => {
     metadata?: Record<string, unknown>
   }>()
 
-  const lastUserMessage =
-    body.message ??
-    (() => {
-      const msgs = body.messages ?? []
-      for (let i = msgs.length - 1; i >= 0; i--) {
-        const m = msgs[i]
-        if (m.role === 'user') {
-          return typeof m.content === 'string' ? m.content : JSON.stringify(m.content)
-        }
-      }
-      return ''
-    })()
+  const lastUserMessage = extractLastUserTextFromChatBody(body)
 
   if (!lastUserMessage) return c.json({ error: 'No message provided' }, 400)
 

@@ -1,28 +1,29 @@
-import { streamText, convertToCoreMessages } from 'ai'
+import { streamText, convertToModelMessages } from 'ai'
 import type { ToolSet } from 'ai'
 import { getModel } from '../config'
 import { buildFormFillingPrompt, formFillingTools } from '@graviola/agent-form-tools'
 import { saveSession } from '../session/store'
 import logger from '../logger'
 import type { Session } from '../session/types'
+import { normalizeClientMessages } from './normalize-client-messages'
 
 /**
  * Run the form-filling agent for a single user turn and return a streaming Response.
  *
  * All tools have no server-side execute handler — they are forwarded to the
- * client via the data stream and executed there (Mode A: frontend-provided schema).
+ * client via the UI message stream and executed there (Mode A: frontend-provided schema).
  *
  * The full message array from the request body is used (not Redis session messages)
- * so that tool-call / tool-result history is preserved across maxSteps continuations.
+ * so that tool-call / tool-result history is preserved across multi-step continuations.
  */
-export function runFormFillingStream(
+export async function runFormFillingStream(
   session: Session,
-  clientMessages: Array<{ role: string; content: unknown }>,
+  clientMessages: Array<{ role: string; content?: unknown; parts?: unknown }>,
   schema: { jsonSchema: Record<string, unknown>; uiSchema?: Record<string, unknown> } | undefined,
   formData: Record<string, unknown> | undefined,
   entityType?: string,
   metadata?: Record<string, unknown>,
-): Response {
+): Promise<Response> {
   if (!schema) {
     throw new Error('Schema is required (Mode A: frontend-provided schema)')
   }
@@ -47,47 +48,54 @@ export function runFormFillingStream(
     },
   })
 
-  const coreMessages = convertToCoreMessages(clientMessages as Parameters<typeof convertToCoreMessages>[0])
+  const uiMessages = normalizeClientMessages(
+    clientMessages as Array<{ role: string; content?: unknown; parts?: unknown }>,
+  )
+  const coreMessages = await convertToModelMessages(uiMessages, {
+    tools: formFillingTools as unknown as ToolSet,
+  })
 
   const result = streamText({
     model: getModel(),
     system: systemPrompt,
     messages: coreMessages,
     tools: formFillingTools as unknown as ToolSet,
-    toolCallStreaming: true,
-    onFinish: async ({ text, usage, steps }) => {
+    onFinish: async (event) => {
+      const { text, totalUsage, steps } = event
+      const hasText = Boolean(text?.trim())
+      const hasToolCalls = (steps ?? []).some((s) => (s.toolCalls?.length ?? 0) > 0)
       logger.info('stream finished', {
         sessionId: session.id,
-        inputTokens: usage?.promptTokens,
-        outputTokens: usage?.completionTokens,
+        inputTokens: totalUsage?.inputTokens,
+        outputTokens: totalUsage?.outputTokens,
         stepCount: steps?.length,
         toolCallNames: steps?.flatMap((s) => s.toolCalls?.map((tc) => tc.toolName) ?? []),
       })
-      if (text) {
-        const updatedSession: Session = {
-          ...session,
-          messages: [
-            ...session.messages,
-            {
-              role: 'user',
-              content:
-                typeof clientMessages[clientMessages.length - 1]?.content === 'string'
-                  ? (clientMessages[clientMessages.length - 1]?.content as string)
-                  : '',
-              createdAt: new Date().toISOString(),
-            },
-            { role: 'assistant', content: text, createdAt: new Date().toISOString() },
-          ],
-          formData: liveFormData,
-          updatedAt: new Date().toISOString(),
-        }
-        await saveSession(updatedSession)
+      if (!hasText && !hasToolCalls) return
+
+      const updatedSession: Session = {
+        ...session,
+        messages: [
+          ...session.messages,
+          {
+            role: 'user',
+            content:
+              typeof clientMessages[clientMessages.length - 1]?.content === 'string'
+                ? (clientMessages[clientMessages.length - 1]?.content as string)
+                : '',
+            createdAt: new Date().toISOString(),
+          },
+          { role: 'assistant', content: text ?? '', createdAt: new Date().toISOString() },
+        ],
+        formData: liveFormData,
+        updatedAt: new Date().toISOString(),
       }
+      await saveSession(updatedSession)
     },
   })
 
-  return result.toDataStreamResponse({
-    getErrorMessage: (error) => {
+  return result.toUIMessageStreamResponse({
+    onError: (error) => {
       logger.error('stream error', {
         err: String(error),
         stack: error instanceof Error ? error.stack : undefined,
