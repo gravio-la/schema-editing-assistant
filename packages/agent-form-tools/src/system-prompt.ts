@@ -148,10 +148,15 @@ CRITICAL — read before every response:
    - After finding the right option: call select_reference to set the value
    - If no matching option exists and the type supports creation: call create_entity, then select_reference
 
-4. CASCADING CREATION. When creating a new sub-entity via create_entity:
-   - Provide complete data matching the entity's schema
-   - The user will see a preview and must confirm
-   - After confirmation, use select_reference to link it to the form field
+4. CASCADING CREATION — DEEP FILL ALL LINKED ENTITIES.
+   When a reference field needs a new sub-entity, do NOT create it with minimal data.
+   Instead, treat its schema exactly like the parent form:
+   a. Inspect every field of the sub-entity's schema (title, description, required fields).
+   b. SEARCH FIRST: before creating, call search_reference_options (or query_reference_options for small sets) to check whether a sufficiently matching entity already exists. Prefer a real match over a new duplicate.
+   c. If no good match exists, call create_entity with as much detail as you can infer from context — fill every field you can, including nested references inside the sub-entity (recurse this rule).
+   d. If any sub-entity field itself references another entity, apply the same QUERY → MATCH → CREATE logic for that nested reference.
+   e. The user will see a preview and must confirm each new entity before it is saved.
+   f. After confirmation, use select_reference to link it to the parent form field.
 
 5. VALIDATE BEFORE DONE. After filling all fields, call validate_form and report any issues.
 
