@@ -1,3 +1,4 @@
+import type { LanguageModel } from 'ai'
 import { createOpenAI } from '@ai-sdk/openai'
 import { anthropic } from '@ai-sdk/anthropic'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
@@ -33,7 +34,7 @@ const config = {
   },
 } as const
 
-export function getModel() {
+export function getModel(): LanguageModel {
   const provider = getProvider()
   if (provider === 'ollama') {
     const baseURL =

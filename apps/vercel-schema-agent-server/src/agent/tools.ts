@@ -13,7 +13,7 @@ export const tools = {
     description:
       'Add ONE field to the form. Call once per field — never batch multiple fields in one call. ' +
       'Build structure first (layouts), then add fields one at a time.',
-    parameters: z.object({
+    inputSchema: z.object({
       parentScope: z
         .string()
         .optional()
@@ -52,7 +52,7 @@ export const tools = {
     description:
       'Add a layout container. Always add layout structure BEFORE adding fields into it. ' +
       'For a wizard: first add a Categorization, then add each Category inside it, then add fields.',
-    parameters: z.object({
+    inputSchema: z.object({
       parentScope: z
         .string()
         .optional()
@@ -103,7 +103,7 @@ export const tools = {
       'Use this to set a SHOW/HIDE rule on an existing layout, rename it, or update its options. ' +
       'CRITICAL: rules must be set via this tool, NOT via update_field — update_field only handles field-level options. ' +
       'Rule goes at the TOP LEVEL of the element, not inside options.',
-    parameters: z.object({
+    inputSchema: z.object({
       label: z
         .string()
         .optional()
@@ -130,7 +130,7 @@ export const tools = {
 
   remove_element: tool({
     description: 'Remove a field or layout by its JSON Forms scope.',
-    parameters: z.object({
+    inputSchema: z.object({
       scope: z
         .string()
         .describe(
@@ -146,7 +146,7 @@ export const tools = {
       'reposition it — preserves all field settings and uiOptions. ' +
       'Typical use: user asks to put two existing fields side-by-side → ' +
       '1. add_layout(HorizontalLayout, label="...") 2. move_element(scope, targetParentLabel) x2.',
-    parameters: z.object({
+    inputSchema: z.object({
       scope: z
         .string()
         .describe('Full JSON Forms scope of the existing Control to move, e.g. "#/properties/verfuegbarVon".'),
@@ -165,7 +165,7 @@ export const tools = {
     description:
       'Update the JSON Schema definition and/or UI options of an existing field. ' +
       'Use to change type, add validation, or switch renderer options.',
-    parameters: z.object({
+    inputSchema: z.object({
       scope: z.string().describe('Full JSON Forms scope of the field to update.'),
       schema: z
         .record(z.string(), z.unknown())
@@ -181,7 +181,7 @@ export const tools = {
 
   rename_field: tool({
     description: 'Rename an existing field (changes the property key and all scope references).',
-    parameters: z.object({
+    inputSchema: z.object({
       scope: z.string().describe('Current full JSON Forms scope of the field.'),
       newName: z.string().describe('New camelCase property key.'),
     }),
@@ -191,7 +191,7 @@ export const tools = {
     description:
       'Ask the user for clarification when their intent is ambiguous. ' +
       'IMPORTANT: After calling this tool you MUST stop — do not call any other tool in this response.',
-    parameters: z.object({
+    inputSchema: z.object({
       question: z.string().describe('The clarifying question to ask the user.'),
       options: z
         .array(z.string())

@@ -1,9 +1,20 @@
 import { Hono } from 'hono'
 import { getSession } from '../session/store'
 import { runAgentStream } from '../agent/stream'
+import { extractLastUserTextFromChatBody } from '../agent/last-user-text'
 import logger from '../logger'
 
 const chat = new Hono()
+
+/** So opening /api/chat in a browser shows the route exists (POST carries the stream). */
+chat.get('/', (c) =>
+  c.json({
+    ok: true,
+    method: 'POST',
+    body:
+      'useChat JSON with sessionId + messages, or legacy { sessionId, message } — see README',
+  }),
+)
 
 chat.post('/', async (c) => {
   // Support both the raw API format { sessionId, message } used by e2e tests
@@ -23,18 +34,7 @@ chat.post('/', async (c) => {
     selectedElement?: { type: string; scope?: string; label?: string }
   }>()
 
-  const lastUserMessage =
-    body.message ??
-    (() => {
-      const msgs = body.messages ?? []
-      for (let i = msgs.length - 1; i >= 0; i--) {
-        const m = msgs[i]
-        if (m.role === 'user') {
-          return typeof m.content === 'string' ? m.content : JSON.stringify(m.content)
-        }
-      }
-      return ''
-    })()
+  const lastUserMessage = extractLastUserTextFromChatBody(body)
 
   if (!lastUserMessage) return c.json({ error: 'No message provided' }, 400)
 
