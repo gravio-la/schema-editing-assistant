@@ -17,7 +17,7 @@ import {
 } from '@graviola/agent-chat-components'
 import type { ChatMessageData, ClarificationPayload } from '@graviola/agent-chat-components'
 
-import { useSchemaAgent } from '@graviola/agent-chat-flow'
+import { resolveServerOrigin, useSchemaAgent } from '@graviola/agent-chat-flow'
 
 interface SchemaState {
   jsonSchema: Record<string, unknown>
@@ -97,7 +97,7 @@ function SchemaDebugger({ serverUrl, sessionId }: SchemaDebuggerProps) {
   useEffect(() => {
     const fetchSchema = async () => {
       try {
-        const res = await fetch(`${serverUrl}/api/schema/${sessionId}`)
+        const res = await fetch(`${resolveServerOrigin(serverUrl)}/api/schema/${sessionId}`)
         if (res.ok) {
           const data = (await res.json()) as SchemaState
           setSchemaState(data)
@@ -216,7 +216,7 @@ function LiveConnect({ serverUrl, language }: LiveConnectProps) {
     setIsCreating(true)
     setError(null)
     try {
-      const res = await fetch(`${serverUrl}/api/session`, {
+      const res = await fetch(`${resolveServerOrigin(serverUrl)}/api/session`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ language }),
@@ -407,6 +407,10 @@ interface LiveConnectStoryArgs {
 const meta: Meta<LiveConnectStoryArgs> = {
   title: 'SchemaDebugger',
   component: LiveConnect,
+  args: {
+    serverUrl: 'http://localhost:3001',
+    language: 'de',
+  },
 }
 export default meta
 type Story = StoryObj<LiveConnectStoryArgs>

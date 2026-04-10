@@ -19,6 +19,7 @@ type Story = StoryObj<typeof StreamTestDemo>
 
 export const LocalServer: Story = {
   args: {
-    serverUrl: 'http://localhost:3001/api/chat',
+    /** Base origin or full `…/api/chat` — both work via resolveChatApiUrl */
+    serverUrl: 'http://localhost:3001',
   },
 }
