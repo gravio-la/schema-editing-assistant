@@ -20,9 +20,11 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@ai-sdk/react": "^3",
     "@graviola/agent-chat-components": "workspace:*",
-    "ai": "^4.0.0",
-    "lodash-es": "^4.0.0"
+    "ai": "^6",
+    "lodash-es": "^4.0.0",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@storybook/react-vite": "^10.2.12",

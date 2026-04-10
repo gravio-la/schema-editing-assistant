@@ -20,8 +20,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@ai-sdk/react": "^3",
     "@graviola/agent-chat-components": "workspace:*",
-    "ai": "^4.0.0"
+    "ai": "^6",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",

@@ -2,6 +2,7 @@ export const AGENT_CHAT_FLOW_VERSION = '0.1.1-client-tools'
 // eslint-disable-next-line no-console
 console.info(`[agent-chat-flow] ${AGENT_CHAT_FLOW_VERSION} loaded`)
 
+export { resolveChatApiUrl, resolveServerOrigin } from './utils/resolve-chat-api-url'
 export { StreamTestDemo } from './demo/StreamTestDemo'
 export { useSchemaAgent } from './hooks/useSchemaAgent'
 export type { ToolResult } from './hooks/useSchemaAgent'

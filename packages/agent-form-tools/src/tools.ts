@@ -14,7 +14,7 @@ export const formFillingTools = {
     description:
       'Set the value of a single form field. Use for any field type: string, number, boolean, date, enum. ' +
       'The path uses dot-notation for nested fields (e.g. "address.street").',
-    parameters: z.object({
+    inputSchema: z.object({
       path: z
         .string()
         .describe('Dot-notation path to the field, e.g. "title", "address.street", "dueDate".'),
@@ -32,7 +32,7 @@ export const formFillingTools = {
       'Set multiple form field values in a single call. Use when you can confidently fill ' +
       'several fields at once (e.g. from a natural language description). ' +
       'Each field is set independently — if one fails, others still apply.',
-    parameters: z.object({
+    inputSchema: z.object({
       fields: z
         .array(
           z.object({
@@ -50,7 +50,7 @@ export const formFillingTools = {
       'references another entity type (e.g. categories, tags, people) and you need to see what ' +
       'options exist. For fields with few options (< 20), this returns all of them. ' +
       'For fields with many options, use search_reference_options instead.',
-    parameters: z.object({
+    inputSchema: z.object({
       path: z
         .string()
         .describe('Dot-notation path of the reference field, e.g. "category", "tags".'),
@@ -70,7 +70,7 @@ export const formFillingTools = {
       'Fuzzy search for options in a reference field. Use when the reference type has many ' +
       'options and you need to find a specific one by name or keyword. ' +
       'Always prefer this over query_reference_options when you already know what you are looking for.',
-    parameters: z.object({
+    inputSchema: z.object({
       path: z
         .string()
         .describe('Dot-notation path of the reference field.'),
@@ -93,7 +93,7 @@ export const formFillingTools = {
       'Select a reference option by its ID for a form field. Call this after query_reference_options ' +
       'or search_reference_options to actually set the value. For array fields (e.g. tags), ' +
       'this adds to the existing array rather than replacing.',
-    parameters: z.object({
+    inputSchema: z.object({
       path: z
         .string()
         .describe('Dot-notation path of the reference field.'),
@@ -112,7 +112,7 @@ export const formFillingTools = {
       'For example, creating a new tag or category. The user will be shown a preview and ' +
       'must confirm before the entity is actually created. ' +
       'After creation, use select_reference to link the new entity to the form field.',
-    parameters: z.object({
+    inputSchema: z.object({
       entityType: z
         .string()
         .describe('The type of entity to create, e.g. "Tag", "Category".'),
@@ -134,7 +134,7 @@ export const formFillingTools = {
       'Validate the current form data against the JSON Schema. ' +
       'Call this after filling all fields to check for validation errors before submission. ' +
       'Returns validation results including any errors with field paths and messages.',
-    parameters: z.object({}),
+    inputSchema: z.object({}),
   }),
 
   get_form_state: tool({
@@ -142,14 +142,14 @@ export const formFillingTools = {
       'Request the current form data snapshot from the client. ' +
       'Use this when you need to see what values are currently filled in the form ' +
       'before deciding what to fill or modify.',
-    parameters: z.object({}),
+    inputSchema: z.object({}),
   }),
 
   request_clarification: tool({
     description:
       'Ask the user for clarification when their intent is ambiguous. ' +
       'IMPORTANT: After calling this tool you MUST stop — do not call any other tool in this response.',
-    parameters: z.object({
+    inputSchema: z.object({
       question: z.string().describe('The clarifying question to ask the user.'),
       options: z
         .array(z.string())
