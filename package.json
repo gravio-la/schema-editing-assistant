@@ -8,7 +8,7 @@
     "dev:storybook": "bun --filter storybook dev",
     "build": "bun --filter './packages/*' build",
     "typecheck": "bun --filter '*' typecheck",
-    "release:all": "bun --filter '@graviola/*' run release"
+    "release:all": "bun run --filter '@graviola/*' release"
   },
   "overrides": {
     "@types/react": "^19.0.0",
