@@ -31,6 +31,8 @@
         pkgs.redis
         run-dev-redis
       ];
+      # Must match apps/debug-app `cypress` devDependency (nixpkgs `cypress` package version).
+      CYPRESS_RUN_BINARY = "${pkgs.cypress}/bin/Cypress";
 
       shellHook = ''
         echo ""

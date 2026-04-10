@@ -1,17 +1,21 @@
 {
   "name": "graviola-agent-tools",
   "private": true,
+  "packageManager": "bun@1.3.3",
   "workspaces": ["apps/*", "packages/*"],
   "scripts": {
     "dev:server": "bun --filter vercel-schema-agent-server dev",
     "dev:form-server": "bun --filter graviola-ai-rest-server dev",
     "dev:storybook": "bun --filter storybook dev",
+    "dev:debug": "bun --filter debug-app dev",
     "build": "bun --filter './packages/*' build",
     "typecheck": "bun --filter '*' typecheck",
     "release:all": "bun run --filter '@graviola/*' release"
   },
   "overrides": {
     "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0"
+    "@types/react-dom": "^19.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   }
 }
