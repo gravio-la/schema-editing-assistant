@@ -1,12 +1,14 @@
 import { Hono } from 'hono'
-import type { Session } from '../session/types'
+import type { CustomRenderer, Session } from '../session/types'
 import { getSession, saveSession, deleteSession } from '../session/store'
 
 const session = new Hono()
 
 /** POST /api/session — create a new session with empty JSON Schema + UI Schema */
 session.post('/', async (c) => {
-  const body = await c.req.json<{ language?: 'de' | 'en' }>().catch(() => ({}))
+  const body = await c.req
+    .json<{ language?: 'de' | 'en'; customRenderers?: CustomRenderer[] }>()
+    .catch((): { language?: 'de' | 'en'; customRenderers?: CustomRenderer[] } => ({}))
   const newSession: Session = {
     id: crypto.randomUUID(),
     createdAt: new Date().toISOString(),
@@ -17,7 +19,10 @@ session.post('/', async (c) => {
       uiSchema: {},
       version: 0,
     },
-    language: (body as { language?: 'de' | 'en' }).language ?? 'en',
+    language: body.language ?? 'en',
+    ...(body.customRenderers !== undefined && body.customRenderers.length > 0
+      ? { customRenderers: body.customRenderers }
+      : {}),
   }
   await saveSession(newSession)
   return c.json({ sessionId: newSession.id, session: newSession })

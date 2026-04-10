@@ -84,6 +84,15 @@ async function parseStream(res: Response): Promise<ParsedAgentStream> {
   return { text, toolCalls, toolResults, error: null, finishReason: 'stop' }
 }
 
+interface CustomRendererPayload {
+  name: string
+  description: string
+  jsonSchema: Record<string, unknown>
+  uiOptions?: Record<string, unknown>
+  /** JSON Schema describing all allowed `uiOptions` keys and value shapes. */
+  uiOptionsSchema?: Record<string, unknown>
+}
+
 async function createSession(language: 'de' | 'en' = 'en') {
   const res = await fetch(`${BASE}/api/session`, {
     method: 'POST',
@@ -93,6 +102,26 @@ async function createSession(language: 'de' | 'en' = 'en') {
   const body = (await res.json()) as {
     sessionId: string
     session: { schemaState: { jsonSchema: unknown; uiSchema: unknown; version: number } }
+  }
+  return body
+}
+
+async function createSessionWithCustomRenderers(
+  customRenderers: CustomRendererPayload[],
+  language: 'de' | 'en' = 'en',
+) {
+  const res = await fetch(`${BASE}/api/session`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ language, customRenderers }),
+  })
+  expect(res.status).toBe(200)
+  const body = (await res.json()) as {
+    sessionId: string
+    session: {
+      schemaState: { jsonSchema: unknown; uiSchema: unknown; version: number }
+      customRenderers?: CustomRendererPayload[]
+    }
   }
   return body
 }
@@ -144,6 +173,33 @@ describe('Session management', () => {
     await fetch(`${BASE}/api/session/${sessionId}`, { method: 'DELETE' })
     const res = await fetch(`${BASE}/api/session/${sessionId}`)
     expect(res.status).toBe(404)
+  })
+
+  test('POST /api/session stores customRenderers on the session', async () => {
+    const customRenderers: CustomRendererPayload[] = [
+      {
+        name: 'Location Picker',
+        description: 'Map / geo input.',
+        jsonSchema: { type: 'string', format: 'geo-point' },
+        uiOptionsSchema: {
+          type: 'object',
+          properties: {
+            widget: { const: 'location-picker' },
+            maxZoom: { type: 'number', minimum: 1, maximum: 20 },
+          },
+          required: ['widget'],
+          additionalProperties: false,
+        },
+        uiOptions: { widget: 'location-picker' },
+      },
+    ]
+    const { sessionId, session } = await createSessionWithCustomRenderers(customRenderers, 'en')
+    expect(session.customRenderers).toEqual(customRenderers)
+
+    const res = await fetch(`${BASE}/api/session/${sessionId}`)
+    expect(res.status).toBe(200)
+    const loaded = (await res.json()) as { customRenderers?: CustomRendererPayload[] }
+    expect(loaded.customRenderers).toEqual(customRenderers)
   })
 })
 
@@ -241,4 +297,51 @@ describe('Agent chat (live LLM)', () => {
 
     expect(session.messages.length).toBeGreaterThanOrEqual(4)
   })
+})
+
+const LOCATION_PICKER_RENDERER: CustomRendererPayload[] = [
+  {
+    name: 'Location Picker',
+    description: 'Use for coordinates, geo-point, or map pin input.',
+    jsonSchema: { type: 'string', format: 'geo-point' },
+    uiOptionsSchema: {
+      type: 'object',
+      properties: {
+        widget: { const: 'location-picker' },
+        maxZoom: { type: 'number', minimum: 1, maximum: 20 },
+      },
+      required: ['widget'],
+      additionalProperties: false,
+    },
+    uiOptions: { widget: 'location-picker' },
+  },
+]
+
+describe('Custom renderers (live LLM)', () => {
+  let sessionId: string
+
+  beforeAll(async () => {
+    const { sessionId: id } = await createSessionWithCustomRenderers(LOCATION_PICKER_RENDERER, 'en')
+    sessionId = id
+  })
+
+  test(
+    'add_field picks up session custom renderer (location picker)',
+    async () => {
+      const stream = await chat(sessionId, 'Add a location picker field')
+
+      expect(stream.error).toBeNull()
+
+      const call = stream.toolCalls.find((t) => t.toolName === 'add_field')
+      expect(call).toBeDefined()
+
+      const schemaArg = call!.args['schema'] as Record<string, unknown>
+      const uiOpt = call!.args['uiOptions'] as Record<string, unknown> | undefined
+
+      const hasGeoFormat = schemaArg['format'] === 'geo-point'
+      const hasWidget = uiOpt?.['widget'] === 'location-picker'
+      expect(hasGeoFormat || hasWidget).toBe(true)
+    },
+    40000,
+  )
 })

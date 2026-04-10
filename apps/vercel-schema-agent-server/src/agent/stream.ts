@@ -59,6 +59,7 @@ export async function runAgentStream(
       liveSchema.uiSchema,
       session.language,
       selectedElement,
+      session.customRenderers,
     ),
     messages: coreMessages,
     tools: tools as unknown as ToolSet,

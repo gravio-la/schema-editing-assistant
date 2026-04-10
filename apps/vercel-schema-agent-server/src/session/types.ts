@@ -13,6 +13,17 @@ export const SchemaStateSchema = z.object({
   version: z.number().int(),
 })
 
+/** Additional JSON Forms renderers / widgets available in this deployment (session-scoped). */
+export const CustomRendererSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  jsonSchema: z.record(z.string(), z.unknown()),
+  /** Optional example or default uiOptions for this renderer. */
+  uiOptions: z.record(z.string(), z.unknown()).optional(),
+  /** Optional JSON Schema describing every allowed key and value shape for `uiOptions` in add_field. */
+  uiOptionsSchema: z.record(z.string(), z.unknown()).optional(),
+})
+
 export const SessionSchema = z.object({
   id: z.string().uuid(),
   createdAt: z.string().datetime(),
@@ -20,6 +31,7 @@ export const SessionSchema = z.object({
   messages: z.array(MessageSchema),
   schemaState: SchemaStateSchema,
   language: z.enum(['de', 'en']).default('en'),
+  customRenderers: z.array(CustomRendererSchema).optional(),
   pendingClarification: z
     .object({
       question: z.string(),
@@ -31,4 +43,5 @@ export const SessionSchema = z.object({
 
 export type Message = z.infer<typeof MessageSchema>
 export type SchemaState = z.infer<typeof SchemaStateSchema>
+export type CustomRenderer = z.infer<typeof CustomRendererSchema>
 export type Session = z.infer<typeof SessionSchema>

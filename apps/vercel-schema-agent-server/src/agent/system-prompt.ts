@@ -1,6 +1,36 @@
 import { jsonFormsRelatedKnowledge } from './json-forms-related-knowledge'
+import type { CustomRenderer } from '../session/types'
 
 type SelectedElement = any
+
+function buildCustomRenderersBlock(renderers: CustomRenderer[]): string {
+  const items = renderers.map((r) => {
+    const hasUiOptionsSchema =
+      r.uiOptionsSchema !== undefined && Object.keys(r.uiOptionsSchema).length > 0
+    const uiSchemaBlock = hasUiOptionsSchema
+      ? `\n  uiOptionsSchema (JSON Schema — all allowed uiOptions keys and value shapes):\n  ${JSON.stringify(r.uiOptionsSchema)}`
+      : ''
+    const hasExampleUi =
+      r.uiOptions !== undefined && Object.keys(r.uiOptions).length > 0
+    const uiLine = hasExampleUi
+      ? hasUiOptionsSchema
+        ? `\n  example uiOptions (must conform to uiOptionsSchema): ${JSON.stringify(r.uiOptions)}`
+        : `\n  uiOptions: ${JSON.stringify(r.uiOptions)}`
+      : hasUiOptionsSchema
+        ? '\n  uiOptions: derive from uiOptionsSchema and user intent (no example given).'
+        : '\n  uiOptions: (none — omit or use empty object if appropriate)'
+    return `- ${r.name}
+  Description: ${r.description}
+  jsonSchema: ${JSON.stringify(r.jsonSchema)}${uiSchemaBlock}${uiLine}`
+  })
+  return `<custom_renderers>
+The following additional field types / renderers are available in this deployment.
+Use them when the user's request matches the description. Apply them via add_field with the given jsonSchema and uiOptions.
+When uiOptionsSchema is present, only use uiOptions keys and values that conform to it.
+
+${items.join('\n\n')}
+</custom_renderers>`
+}
 
 /** Build the system prompt string for streamText. */
 export function buildSystemPrompt(
@@ -8,8 +38,14 @@ export function buildSystemPrompt(
   uiSchema: Record<string, unknown>,
   language: 'de' | 'en',
   selectedElement?: SelectedElement,
+  customRenderers?: CustomRenderer[],
 ): string {
   const lang = language === 'de' ? 'German' : 'English'
+
+  const customRenderersDomainLine =
+    customRenderers !== undefined && customRenderers.length > 0
+      ? '- Additional deployment-specific field types are listed under <custom_renderers> below — when the user asks for them, use add_field with the documented jsonSchema and uiOptions; if uiOptionsSchema is given, treat it as the full contract for valid uiOptions.\n\n'
+      : ''
 
   const roleAndRules = `\
 <role>
@@ -130,7 +166,7 @@ German → JSON Schema / JSON Forms UI Schema mapping:
 - "Nur Lesen" / "Readonly" → uiOptions: { "readonly": true }
 - "Gruppe" / "Abschnitt" / "Sektion" → add_layout(Group, label="...", scope="...")
 
-Auto-generate without asking:
+${customRenderersDomainLine}Auto-generate without asking:
 - "Adresseingabe" → 5 fields (strasse, hausnummer, plz, ort, land)
 - "E-Mail" → type: string, format: email
 - "Datum" → type: string, format: date
@@ -148,7 +184,12 @@ ${JSON.stringify({ jsonSchema: schema, uiSchema }, null, 2)}
     ? buildSelectedElementBlock(selectedElement)
     : ''
 
-  return [roleAndRules, jsonFormsRef, selectedElementBlock, schemaBlock]
+  const customRenderersBlock =
+    customRenderers !== undefined && customRenderers.length > 0
+      ? buildCustomRenderersBlock(customRenderers)
+      : ''
+
+  return [roleAndRules, jsonFormsRef, customRenderersBlock, selectedElementBlock, schemaBlock]
     .filter(Boolean)
     .join('\n\n')
 }
