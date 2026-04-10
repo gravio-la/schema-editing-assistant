@@ -91,7 +91,9 @@ export function useSchemaAgent({
 
       const executor = onExecuteToolRef.current
       if (!executor) {
-        await addToolOutput({
+        // Do not await addToolOutput — it uses the same SerialJobExecutor as the UI stream
+        // and would deadlock with the in-flight stream job (chat stays "streaming", input disabled).
+        void addToolOutput({
           toolCallId: toolCall.toolCallId,
           tool: name,
           output: { success: false, error: `No executor registered for tool ${name}` },
@@ -101,13 +103,13 @@ export function useSchemaAgent({
 
       try {
         const result = await executor(name, toolCall.input as Record<string, unknown>)
-        await addToolOutput({
+        void addToolOutput({
           toolCallId: toolCall.toolCallId,
           tool: name,
           output: result,
         } as Parameters<typeof addToolOutput>[0])
       } catch (err) {
-        await addToolOutput({
+        void addToolOutput({
           toolCallId: toolCall.toolCallId,
           tool: name,
           output: { success: false, error: String(err) },

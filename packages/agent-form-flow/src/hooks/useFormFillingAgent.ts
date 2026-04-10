@@ -128,8 +128,9 @@ export function useFormFillingAgent({
 
       if (name === 'request_clarification') return
 
-      const finish = async (result: ToolResult) => {
-        await addToolOutput({
+      const finish = (result: ToolResult) => {
+        // Must not await addToolOutput — same SerialJobExecutor as the stream (deadlock + stuck "streaming").
+        void addToolOutput({
           toolCallId: toolCall.toolCallId,
           tool: name,
           output: result,
@@ -140,7 +141,7 @@ export function useFormFillingAgent({
         switch (name) {
           case 'set_field_value': {
             await cb.onSetFieldValue(args['path'] as string, args['value'])
-            await finish({ success: true })
+            finish({ success: true })
             return
           }
 
@@ -153,13 +154,13 @@ export function useFormFillingAgent({
                 await cb.onSetFieldValue(field.path, field.value)
               }
             }
-            await finish({ success: true, message: `Set ${fields.length} fields` })
+            finish({ success: true, message: `Set ${fields.length} fields` })
             return
           }
 
           case 'query_reference_options': {
             if (!cb.onQueryOptions) {
-              await finish({
+              finish({
                 success: false,
                 error: 'No query handler registered. Reference option querying is not available.',
               })
@@ -169,13 +170,13 @@ export function useFormFillingAgent({
               args['referenceType'] as string,
               args['limit'] as number | undefined,
             )
-            await finish({ success: true, data: options })
+            finish({ success: true, data: options })
             return
           }
 
           case 'search_reference_options': {
             if (!cb.onSearchOptions) {
-              await finish({
+              finish({
                 success: false,
                 error: 'No search handler registered. Reference option searching is not available.',
               })
@@ -186,7 +187,7 @@ export function useFormFillingAgent({
               args['query'] as string,
               args['limit'] as number | undefined,
             )
-            await finish({ success: true, data: results })
+            finish({ success: true, data: results })
             return
           }
 
@@ -200,13 +201,13 @@ export function useFormFillingAgent({
             } else {
               await cb.onSetFieldValue(args['path'] as string, args['referenceId'])
             }
-            await finish({ success: true })
+            finish({ success: true })
             return
           }
 
           case 'create_entity': {
             if (!cb.onCreateEntity) {
-              await finish({
+              finish({
                 success: false,
                 error: 'Entity creation is not available. No creation handler registered.',
               })
@@ -216,34 +217,34 @@ export function useFormFillingAgent({
               args['entityType'] as string,
               args['data'] as Record<string, unknown>,
             )
-            await finish({ success: true, data: created })
+            finish({ success: true, data: created })
             return
           }
 
           case 'validate_form': {
             if (!cb.onValidateForm) {
-              await finish({
+              finish({
                 success: true,
                 data: { valid: true, message: 'No validator registered — assuming valid.' },
               })
               return
             }
             const validation = await cb.onValidateForm()
-            await finish({ success: true, data: validation })
+            finish({ success: true, data: validation })
             return
           }
 
           case 'get_form_state': {
             const state = cb.onGetFormState?.() ?? formDataRef.current
-            await finish({ success: true, data: state })
+            finish({ success: true, data: state })
             return
           }
 
           default:
-            await finish({ success: false, error: `Unknown tool: ${name}` })
+            finish({ success: false, error: `Unknown tool: ${name}` })
         }
       } catch (err) {
-        await finish({ success: false, error: String(err) })
+        finish({ success: false, error: String(err) })
       }
     },
     ...(onError !== undefined ? { onError } : {}),
