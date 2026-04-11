@@ -129,12 +129,30 @@ export const tools = {
   }),
 
   remove_element: tool({
-    description: 'Remove a field or layout by its JSON Forms scope.',
+    description:
+      'Remove a single field (Control) by its JSON Forms scope. ' +
+      'For deleting an entire layout container and everything inside it (Group, Category, VerticalLayout, etc.), ' +
+      'use remove_layout with a uiSchema dot-path instead — remove_element does not fully clean nested fields/jsonSchema like the designer.',
     inputSchema: z.object({
       scope: z
         .string()
         .describe(
-          'Full JSON Forms scope of the element to remove, e.g. "#/properties/vorname".',
+          'Full JSON Forms scope of the Control to remove, e.g. "#/properties/vorname".',
+        ),
+    }),
+  }),
+
+  remove_layout: tool({
+    description:
+      'Remove a layout container and all nested content (fields + nested layouts) in one step. ' +
+      'Use when deleting a section, tab, or group subtree. ' +
+      'The path is a dot path from the root uiSchema (as in <current_schema>), e.g. "elements.0" or "elements.1.elements.2" — ' +
+      'not a JSON Forms "#/properties/..." scope (that is for remove_element on a single field).',
+    inputSchema: z.object({
+      path: z
+        .string()
+        .describe(
+          'Dot path from the root uiSchema element, e.g. "elements.0", "elements.0.elements.1".',
         ),
     }),
   }),
