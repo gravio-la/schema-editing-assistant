@@ -49,6 +49,8 @@ export function AgentChatProvider({
     streamingMessageId,
     pendingClarification,
     answerClarification,
+    pendingFormReplacement,
+    confirmFormReplacement,
     agentStatus,
   } = useSchemaAgent({
     serverUrl,
@@ -70,6 +72,8 @@ export function AgentChatProvider({
         {...(streamingMessageId !== undefined ? { streamingMessageId } : {})}
         pendingClarification={pendingClarification}
         onAnswerClarification={answerClarification}
+        pendingFormReplacement={pendingFormReplacement}
+        onConfirmFormReplacement={confirmFormReplacement}
         agentStatus={agentStatus}
         {...(panelOpen !== undefined && onPanelOpenChange !== undefined
           ? { open: panelOpen, onOpenChange: onPanelOpenChange }

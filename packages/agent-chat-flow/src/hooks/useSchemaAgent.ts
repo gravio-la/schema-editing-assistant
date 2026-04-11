@@ -6,10 +6,56 @@ import {
   type HttpChatTransportInitOptions,
   type UIMessage,
 } from 'ai'
-import type { ClarificationPayload, ChatMessageData } from '@graviola/agent-chat-components'
+import type {
+  ClarificationPayload,
+  ChatMessageData,
+  FormReplacementPayload,
+} from '@graviola/agent-chat-components'
 import { resolveChatApiUrl } from '../utils/resolve-chat-api-url'
 
 type SelectedUISchemaElement = any
+
+type FormReplaceToolName = 'replace_form' | 'repair_form'
+
+function resolveFormReplaceToolName(p: { type: string; toolName?: string }): FormReplaceToolName | null {
+  if (p.type === 'tool-replace_form') return 'replace_form'
+  if (p.type === 'tool-repair_form') return 'repair_form'
+  if (p.type === 'dynamic-tool' && p.toolName === 'replace_form') return 'replace_form'
+  if (p.type === 'dynamic-tool' && p.toolName === 'repair_form') return 'repair_form'
+  return null
+}
+
+/** Tool part waiting for user confirm + addToolOutput (same pattern as request_clarification). */
+function findPendingFormReplacePart(parts: UIMessage['parts']):
+  | {
+      toolCallId: string
+      toolName: FormReplaceToolName
+      input: { jsonSchema: Record<string, unknown>; uiSchema: Record<string, unknown> }
+    }
+  | undefined {
+  for (const p of parts) {
+    if (typeof p.type !== 'string') continue
+    const toolName = resolveFormReplaceToolName(p as { type: string; toolName?: string })
+    if (!toolName) continue
+    if (!('state' in p) || (p as { state: string }).state !== 'input-available') continue
+    if (!('toolCallId' in p)) continue
+    const raw = (p as { input?: unknown }).input
+    if (raw == null || typeof raw !== 'object' || Array.isArray(raw)) continue
+    const jsonSchema = (raw as Record<string, unknown>)['jsonSchema']
+    const uiSchema = (raw as Record<string, unknown>)['uiSchema']
+    if (jsonSchema == null || typeof jsonSchema !== 'object' || Array.isArray(jsonSchema)) continue
+    if (uiSchema == null || typeof uiSchema !== 'object' || Array.isArray(uiSchema)) continue
+    return {
+      toolCallId: (p as { toolCallId: string }).toolCallId,
+      toolName,
+      input: {
+        jsonSchema: jsonSchema as Record<string, unknown>,
+        uiSchema: uiSchema as Record<string, unknown>,
+      },
+    }
+  }
+  return undefined
+}
 
 export interface ToolResult {
   success: boolean
@@ -38,6 +84,8 @@ interface UseSchemaAgentReturn {
   streamingMessageId: string | undefined
   pendingClarification: ClarificationPayload | null
   answerClarification: (answer: string) => void
+  pendingFormReplacement: FormReplacementPayload | null
+  confirmFormReplacement: (confirmed: boolean) => void
   agentStatus: 'idle' | 'thinking' | 'streaming' | 'error'
 }
 
@@ -105,6 +153,7 @@ export function useSchemaAgent({
     async onToolCall({ toolCall }) {
       const name = toolCall.toolName
       if (name === 'request_clarification') return
+      if (name === 'replace_form' || name === 'repair_form') return
 
       const executor = onExecuteToolRef.current
       if (!executor) {
@@ -144,15 +193,29 @@ export function useSchemaAgent({
   )
 
   const lastAssistantMessage = [...messages].reverse().find((m) => m.role === 'assistant')
-  const clarificationPart = lastAssistantMessage?.parts.find((p) => {
-    if (p.type !== 'tool-request_clarification') return false
-    return 'state' in p && p.state === 'input-available'
-  }) as
+  const formReplacePart = lastAssistantMessage
+    ? findPendingFormReplacePart(lastAssistantMessage.parts)
+    : undefined
+
+  const clarificationPart = formReplacePart
+    ? undefined
+    : (lastAssistantMessage?.parts.find((p) => {
+        if (p.type !== 'tool-request_clarification') return false
+        return 'state' in p && p.state === 'input-available'
+      }) as
     | {
         toolCallId: string
         input: { question: string; options?: string[]; context?: string }
       }
-    | undefined
+    | undefined)
+
+  const pendingFormReplacement: FormReplacementPayload | null = formReplacePart
+    ? {
+        toolName: formReplacePart.toolName,
+        jsonSchema: formReplacePart.input.jsonSchema,
+        uiSchema: formReplacePart.input.uiSchema,
+      }
+    : null
 
   const pendingClarification: ClarificationPayload | null = clarificationPart
     ? {
@@ -178,6 +241,59 @@ export function useSchemaAgent({
       }
     },
     [pendingClarification, addToolOutput],
+  )
+
+  const formReplaceMetaRef = useRef(formReplacePart)
+  useEffect(() => {
+    formReplaceMetaRef.current = formReplacePart
+  }, [formReplacePart])
+
+  const confirmFormReplacement = useCallback(
+    (confirmed: boolean) => {
+      const meta = formReplaceMetaRef.current
+      if (!meta) return
+
+      if (!confirmed) {
+        void addToolOutput({
+          toolCallId: meta.toolCallId,
+          tool: meta.toolName,
+          output: { success: false, confirmed: false, message: 'User declined' },
+        } as Parameters<typeof addToolOutput>[0])
+        return
+      }
+
+      const executor = onExecuteToolRef.current
+      if (!executor) {
+        void addToolOutput({
+          toolCallId: meta.toolCallId,
+          tool: meta.toolName,
+          output: { success: false, error: `No executor registered for tool ${meta.toolName}` },
+        } as Parameters<typeof addToolOutput>[0])
+        return
+      }
+
+      void (async () => {
+        try {
+          const args: Record<string, unknown> = {
+            jsonSchema: meta.input.jsonSchema,
+            uiSchema: meta.input.uiSchema,
+          }
+          const result = await executor(meta.toolName, args)
+          void addToolOutput({
+            toolCallId: meta.toolCallId,
+            tool: meta.toolName,
+            output: result,
+          } as Parameters<typeof addToolOutput>[0])
+        } catch (err) {
+          void addToolOutput({
+            toolCallId: meta.toolCallId,
+            tool: meta.toolName,
+            output: { success: false, error: String(err) },
+          } as Parameters<typeof addToolOutput>[0])
+        }
+      })()
+    },
+    [addToolOutput],
   )
 
   const chatMessages: ChatMessageData[] = messages.map((m) => ({
@@ -207,6 +323,8 @@ export function useSchemaAgent({
     streamingMessageId,
     pendingClarification,
     answerClarification: answerClarificationWithId,
+    pendingFormReplacement,
+    confirmFormReplacement,
     agentStatus: agentStatus as 'idle' | 'thinking' | 'streaming' | 'error',
   }
 }

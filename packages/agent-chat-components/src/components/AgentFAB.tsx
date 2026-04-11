@@ -11,8 +11,9 @@ import { AgentStatusIndicator } from './AgentStatusIndicator'
 import { ChatInput } from './ChatInput'
 import { ChatMessageList } from './ChatMessageList'
 import { ClarificationCard } from './ClarificationCard'
+import { FormReplacementConfirmCard } from './FormReplacementConfirmCard'
 import { useDraggable } from '../hooks/useDraggable'
-import type { AgentStatus, ChatMessageData, ClarificationPayload } from '../types'
+import type { AgentStatus, ChatMessageData, ClarificationPayload, FormReplacementPayload } from '../types'
 import { WandHutFabIcon } from './WandHutFabIcon'
 
 export interface AgentFABProps {
@@ -22,6 +23,8 @@ export interface AgentFABProps {
   streamingMessageId?: string
   pendingClarification?: ClarificationPayload | null
   onAnswerClarification?: (answer: string) => void
+  pendingFormReplacement?: FormReplacementPayload | null
+  onConfirmFormReplacement?: (confirmed: boolean) => void
   agentStatus?: AgentStatus['state']
   defaultPosition?: { x: number; y: number }
   /** Uncontrolled: initial panel visibility (ignored when `open` is set). */
@@ -54,6 +57,8 @@ export function AgentFAB({
   streamingMessageId,
   pendingClarification,
   onAnswerClarification,
+  pendingFormReplacement,
+  onConfirmFormReplacement,
   agentStatus = 'idle',
   defaultPosition,
   defaultOpen = false,
@@ -163,8 +168,16 @@ export function AgentFAB({
         sx={{ flexGrow: 1, minHeight: 0 }}
       />
 
-      {/* Footer */}
-      {pendingClarification != null ? (
+      {/* Footer — form replacement takes priority over clarification */}
+      {pendingFormReplacement != null ? (
+        <Box sx={{ p: 1, flexShrink: 0 }}>
+          <FormReplacementConfirmCard
+            payload={pendingFormReplacement}
+            onConfirm={(confirmed) => onConfirmFormReplacement?.(confirmed)}
+            disabled={isStreaming}
+          />
+        </Box>
+      ) : pendingClarification != null ? (
         <Box sx={{ p: 1, flexShrink: 0 }}>
           <ClarificationCard
             clarification={pendingClarification}

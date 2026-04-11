@@ -11,6 +11,13 @@ export interface ClarificationPayload {
   context?: string
 }
 
+/** Pending replace_form / repair_form — user must confirm before the app applies schemas. */
+export interface FormReplacementPayload {
+  toolName: 'replace_form' | 'repair_form'
+  jsonSchema: Record<string, unknown>
+  uiSchema: Record<string, unknown>
+}
+
 export interface AgentStatus {
   state: 'idle' | 'thinking' | 'streaming' | 'error'
 }
