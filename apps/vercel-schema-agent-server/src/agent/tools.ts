@@ -5,8 +5,8 @@ import { z } from 'zod'
  * Tool definitions WITHOUT execute handlers.
  * All tools are executed client-side via useChat's onToolCall callback,
  * which dispatches directly to the Redux store in the consumer app.
- * The only exception is request_clarification which renders as a native
- * tool-invocation part in the chat UI — the user answers via addToolResult.
+ * Exceptions (no server execute): request_clarification; replace_form; repair_form —
+ * the user confirms in the chat UI before addToolOutput resumes the agent.
  */
 export const tools = {
   add_field: tool({
@@ -201,6 +201,40 @@ export const tools = {
         .string()
         .optional()
         .describe('Optional additional context or explanation for the user.'),
+    }),
+  }),
+
+  replace_form: tool({
+    description:
+      'Replace the entire form in one step with new jsonSchema and uiSchema. ' +
+      'Use when the user has no form yet and wants a complete starter, or explicitly wants a brand-new form from scratch. ' +
+      'You already see the current form in <current_schema> — align the replacement with the user request. ' +
+      'IMPORTANT: After calling this tool you MUST stop — do not call any other tool in this response. ' +
+      'The user must confirm before the replacement is applied.',
+    inputSchema: z.object({
+      jsonSchema: z
+        .record(z.string(), z.unknown())
+        .describe('Complete JSON Schema root document for the form (typically type: object with properties).'),
+      uiSchema: z
+        .record(z.string(), z.unknown())
+        .describe('Complete JSON Forms UI Schema root element (e.g. VerticalLayout with elements).'),
+    }),
+  }),
+
+  repair_form: tool({
+    description:
+      'Replace the entire form with corrected jsonSchema and uiSchema when incremental edits are insufficient. ' +
+      'Use when the current form in <current_schema> is fundamentally wrong, inconsistent, or broken ' +
+      '(e.g. mismatched Control scopes, wrong structure, many errors) and must be rebuilt as a whole. ' +
+      'IMPORTANT: After calling this tool you MUST stop — do not call any other tool in this response. ' +
+      'The user must confirm before the replacement is applied (with stronger guardrails than replace_form).',
+    inputSchema: z.object({
+      jsonSchema: z
+        .record(z.string(), z.unknown())
+        .describe('Complete corrected JSON Schema root document.'),
+      uiSchema: z
+        .record(z.string(), z.unknown())
+        .describe('Complete corrected JSON Forms UI Schema root element.'),
     }),
   }),
 }

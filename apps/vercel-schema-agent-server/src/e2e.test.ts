@@ -60,8 +60,16 @@ async function parseStream(res: Response): Promise<ParsedAgentStream> {
   const toolResults: ParsedAgentStream['toolResults'] = []
 
   for (const p of last?.parts ?? []) {
-    if (typeof p.type !== 'string' || !p.type.startsWith('tool-')) continue
-    const toolName = p.type.slice('tool-'.length)
+    if (typeof p.type !== 'string') continue
+
+    // Static tools: `tool-add_field`; streamed / some providers also use `dynamic-tool` + toolName (AI SDK 6).
+    const isDynamicTool = p.type === 'dynamic-tool'
+    const isStaticTool = p.type.startsWith('tool-')
+    if (!isDynamicTool && !isStaticTool) continue
+
+    const toolName = isDynamicTool
+      ? (p as { toolName: string }).toolName
+      : p.type.slice('tool-'.length)
     if (!('toolCallId' in p)) continue
     const toolCallId = (p as { toolCallId: string }).toolCallId
     const state = 'state' in p ? (p as { state: string }).state : undefined
@@ -136,6 +144,20 @@ async function chat(sessionId: string, message: string) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ sessionId, message }),
+  })
+  expect(res.status).toBe(200)
+  return parseStream(res)
+}
+
+async function chatWithSchema(
+  sessionId: string,
+  message: string,
+  schema: { jsonSchema: Record<string, unknown>; uiSchema: Record<string, unknown> },
+) {
+  const res = await fetch(`${BASE}/api/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sessionId, message, schema }),
   })
   expect(res.status).toBe(200)
   return parseStream(res)
@@ -317,6 +339,78 @@ const LOCATION_PICKER_RENDERER: CustomRendererPayload[] = [
   },
 ]
 
+const EMPTY_CLIENT_SCHEMA = {
+  jsonSchema: { type: 'object', properties: {} as Record<string, unknown>, required: [] as string[] },
+  uiSchema: {} as Record<string, unknown>,
+}
+
+/** Property key does not match Control scope — needs wholesale repair_form. */
+const BROKEN_SCOPE_SCHEMA = {
+  jsonSchema: {
+    type: 'object',
+    properties: {
+      nem: { type: 'string', title: 'Name' },
+    },
+    required: [] as string[],
+  },
+  uiSchema: {
+    type: 'VerticalLayout',
+    elements: [{ type: 'Control', scope: '#/properties/name' }],
+  },
+}
+
+describe('replace_form and repair_form tools (live LLM)', () => {
+  test(
+    'replace_form — build complete contact form from empty schema in one tool call',
+    async () => {
+      const { sessionId } = await createSession('en')
+      const stream = await chatWithSchema(
+        sessionId,
+        'Create a complete contact form with name, email, and phone number fields. ' +
+          'You MUST use the replace_form tool once with the full jsonSchema and uiSchema — do not use add_field.',
+        EMPTY_CLIENT_SCHEMA,
+      )
+
+      expect(stream.error).toBeNull()
+
+      const call = stream.toolCalls.find((t) => t.toolName === 'replace_form')
+      expect(call).toBeDefined()
+
+      const js = call!.args['jsonSchema'] as Record<string, unknown>
+      const props = js['properties'] as Record<string, unknown> | undefined
+      expect(props).toBeDefined()
+      expect(Object.keys(props ?? {}).length).toBeGreaterThanOrEqual(2)
+
+      const us = call!.args['uiSchema'] as Record<string, unknown>
+      expect(us['elements'] ?? us['type']).toBeDefined()
+    },
+    40000,
+  )
+
+  test(
+    'repair_form — fix broken scope mismatch with one wholesale repair tool call',
+    async () => {
+      const { sessionId } = await createSession('en')
+      const stream = await chatWithSchema(
+        sessionId,
+        'The form has a broken field: the Control scope does not match any property. ' +
+          'Repair the entire form using the repair_form tool once with corrected full jsonSchema and uiSchema.',
+        BROKEN_SCOPE_SCHEMA,
+      )
+
+      expect(stream.error).toBeNull()
+
+      const call = stream.toolCalls.find((t) => t.toolName === 'repair_form')
+      expect(call).toBeDefined()
+
+      const js = call!.args['jsonSchema'] as Record<string, unknown>
+      expect(js['type']).toBe('object')
+      expect(js['properties']).toBeDefined()
+    },
+    40000,
+  )
+})
+
 describe('Custom renderers (live LLM)', () => {
   let sessionId: string
 
@@ -328,7 +422,13 @@ describe('Custom renderers (live LLM)', () => {
   test(
     'add_field picks up session custom renderer (location picker)',
     async () => {
-      const stream = await chat(sessionId, 'Add a location picker field')
+      // Ask for one root-level add_field only. Vague wording makes the model follow
+      // "layouts before fields" and emit add_layout first, then this step would only
+      // see add_layout in the stream (finishReason tool-calls) with no add_field yet.
+      const stream = await chat(
+        sessionId,
+        'Add one root-level field with add_field only (do not add a layout or Group first): use the Location Picker from custom_renderers — jsonSchema format geo-point and uiOptions widget location-picker.',
+      )
 
       expect(stream.error).toBeNull()
 

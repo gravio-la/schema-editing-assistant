@@ -22,9 +22,9 @@ type SelectedElement = any
  * across multi-step continuations. Without this, each step looks like a new
  * blank conversation and the LLM repeats the same tool call indefinitely.
  *
- * request_clarification has no execute handler either; the AI SDK
- * forwards it to the client as a tool part, where the user answers
- * via addToolOutput() and the loop continues.
+ * request_clarification, replace_form, and repair_form have no execute handler either;
+ * the AI SDK forwards them as tool parts; the user confirms (or answers) via
+ * addToolOutput() and the loop continues.
  */
 export async function runAgentStream(
   session: Session,
